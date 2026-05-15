@@ -310,6 +310,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   color:#333;text-shadow:none;
 }
 .rtile.used{opacity:0.22;pointer-events:none;transform:none;}
+#rack.flip-active .rtile.used{pointer-events:all;cursor:pointer;}
 
 /* ── SCREENS ── */
 .screen{
@@ -624,6 +625,40 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   border:1px solid #ffdd44;
   border-radius:6px;padding:2px 8px;
 }
+
+/* ── LEVEL DISPLAY ── */
+#level-display{
+  text-align:center;
+  background:linear-gradient(180deg,#2a5a8a,#1a3a6a);
+  border-bottom:2px solid #c8a020;
+  padding:2px 8px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+#level-label{
+  color:#aaccff;
+  font-family:'Fredoka One',cursive;
+  font-size:13px;
+  letter-spacing:1px;
+}
+#level-num{
+  color:#ffdd44;
+  font-family:'Fredoka One',cursive;
+  font-size:20px;
+  text-shadow:0 1px 4px rgba(255,200,0,0.5);
+}
+#level-stars{
+  font-size:14px;
+  letter-spacing:2px;
+}
+#over-level{
+  color:#aaccff;
+  font-size:18px;
+  font-family:'Fredoka One',cursive;
+}
 </style>
 </head>
 <body>
@@ -656,6 +691,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   <div class="screen" id="over-scr" style="display:none">
     <div class="logo-big" id="over-title">BOOM!<br>💣</div>
     <div id="final-score">Score: 0</div>
+    <div id="over-level">Level 1</div>
     <div id="over-sub">The bomb went off!</div>
     <button class="play-btn" onclick="showPowerSelector()">PLAY AGAIN</button>
     <button class="play-btn" onclick="showHighScores()" style="font-size:18px;padding:8px 32px;background:linear-gradient(180deg,#ddaa00,#aa7700);border-color:#886600;box-shadow:0 4px 0 #664400;">🏆 HIGH SCORES</button>
@@ -665,6 +701,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   <div id="hdr">
     <button id="menu-btn" onclick="menuGame()">MENU</button>
     <button id="hs-btn" onclick="showHighScores()">🏆</button>
+    <button id="sound-btn" onclick="toggleSound()" style="background:linear-gradient(180deg,#4db04d,#2a8a2a);border:2px solid #1a6a1a;border-radius:6px;color:#fff;font-size:14px;padding:0 8px;cursor:pointer;box-shadow:0 3px 0 #0a3a0a;">🔊</button>
     <div id="score-box">
       <div id="score-lbl">SCORE</div>
       <div id="score-val">0</div>
@@ -673,6 +710,13 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
       <div id="ltrs-lbl">LETTERS<br>LEFT</div>
       <div id="ltrs-val">30</div>
     </div>
+  </div>
+
+  <!-- LEVEL DISPLAY -->
+  <div id="level-display">
+    <div id="level-label">LEVEL</div>
+    <div id="level-num">1</div>
+    <div id="level-stars">⭐</div>
   </div>
 
   <!-- FUSE ROW -->
@@ -804,14 +848,14 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
 // -- DICTIONARY -----------------------------------------------------
 // Curated letter sets - each guarantees words of every slot length (3,3,4,4,5,5,6,6,7)
 const WORD_SETS = [
-  {w:"STRANGE",s3:["tan","ran"],s4:["star","rant"],s5:["rants","grant"],s6:["grants","stager"]},
-  {w:"PARLEYS",s3:["pal","lay"],s4:["pale","play"],s5:["layer","relay"],s6:["relays","parley"]},
-  {w:"PLAYERS",s3:["pal","lay"],s4:["play","pale"],s5:["layer","relay"],s6:["relays","parley"]},
+  {w:"STRANGE",s3:["tan","ran"],s4:["star","rant"],s5:["rants","grant"],s6:["grants","stager"],w2:"GARNETS"},
+  {w:"PARLEYS",s3:["pal","lay"],s4:["pale","play"],s5:["layer","relay"],s6:["relays","parley"],w2:"PLAYERS"},
+  {w:"PLAYERS",s3:["pal","lay"],s4:["play","pale"],s5:["layer","relay"],s6:["relays","parley"],w2:"PARLEYS"},
   {w:"PARENTS",s3:["pan","ran"],s4:["rant","part"],s5:["rants","parts"],s6:["parent","repast"]},
-  {w:"EASTERN",s3:["ear","tan"],s4:["earn","rent"],s5:["tears","stare"],s6:["neater","ranees"]},
-  {w:"SENATOR",s3:["ton","ore"],s4:["rent","note"],s5:["toner","snore"],s6:["stoner","reason"]},
-  {w:"TRAINED",s3:["ran","ant"],s4:["rain","dint"],s5:["train","rated"],s6:["tirade","detain"]},
-  {w:"STAINED",s3:["and","tan"],s4:["sand","said"],s5:["saint","dents"],s6:["steind","detain"]},
+  {w:"EASTERN",s3:["ear","tan"],s4:["earn","rent"],s5:["tears","stare"],s6:["neater","ranees"],w2:"NEAREST"},
+  {w:"SENATOR",s3:["ton","ore"],s4:["rent","note"],s5:["toner","snore"],s6:["stoner","reason"],w2:"TREASON"},
+  {w:"TRAINED",s3:["ran","ant"],s4:["rain","dint"],s5:["train","rated"],s6:["tirade","detain"],w2:"DETRAIN"},
+  {w:"STAINED",s3:["and","tan"],s4:["sand","said"],s5:["saint","tides"],s6:["detain","sained"],w2:"DETAINS"},
   {w:"PLANETS",s3:["pal","tan"],s4:["plan","pant"],s5:["plant","plane"],s6:["plants","latens"]},
   {w:"GRANTED",s3:["and","tan"],s4:["rang","rent"],s5:["grant","trade"],s6:["ranted","grande"]},
   {w:"SANDIER",s3:["and","sin"],s4:["sand","ride"],s5:["drain","snare"],s6:["rained","dinars"]},
@@ -820,44 +864,44 @@ const WORD_SETS = [
   {w:"ANIMALS",s3:["aim","nil"],s4:["mail","sail"],s5:["snail","slain"],s6:["animal","manias"]},
   {w:"CONTAIN",s3:["can","tan"],s4:["coin","into"],s5:["tonic","antic"],s6:["action","nation"]},
   {w:"CERTAIN",s3:["arc","ran"],s4:["rant","rain"],s5:["train","irate"],s6:["retain","canter"]},
-  {w:"CAPTAIN",s3:["can","tan"],s4:["pact","pain"],s5:["panic","antic"],s6:["capita","attain"]},
-  {w:"FLATTEN",s3:["tan","elf"],s4:["felt","tale"],s5:["latte","elate"],s6:["fallen","talent"]},
+  {w:"CAPTAIN",s3:["can","tan"],s4:["pact","pain"],s5:["panic","antic"],s6:["capita","patina"]},
+  {w:"FLATTEN",s3:["tan","elf"],s4:["felt","tale"],s5:["latte","laten"],s6:["talent","latent"]},
   {w:"MASTERY",s3:["mat","ray"],s4:["mart","mare"],s5:["steam","mates"],s6:["master","steamy"]},
-  {w:"STREAMS",s3:["mat","sea"],s4:["star","mare"],s5:["steam","mates"],s6:["master","steams"]},
+  {w:"STREAMS",s3:["mat","sea"],s4:["star","mare"],s5:["steam","mates"],s6:["master","steams"],w2:"MASTERS"},
   {w:"CRATERS",s3:["arc","car"],s4:["cart","race"],s5:["crate","cares"],s6:["caters","recast"]},
   {w:"HANDLES",s3:["hen","lad"],s4:["lane","hand"],s5:["hands","lanes"],s6:["handle","lashed"]},
   {w:"CANDLES",s3:["can","lad"],s4:["cane","lace"],s5:["lance","lanes"],s6:["candle","cleans"]},
   {w:"CASTLES",s3:["ace","sat"],s4:["cast","lace"],s5:["scale","cleat"],s6:["castle","cleats"]},
   {w:"FARMERS",s3:["far","ram"],s4:["farm","mare"],s5:["frame","rearm"],s6:["farmer","frames"]},
   {w:"FINGERS",s3:["fig","sir"],s4:["fire","rigs"],s5:["finer","reins"],s6:["finger","ringes"]},
-  {w:"WINTERS",s3:["win","net"],s4:["wine","writ"],s5:["twins","write"],s6:["winter","twines"]},
+  {w:"WINTERS",s3:["win","net"],s4:["wine","writ"],s5:["twins","write"],s6:["winter","twines"],w2:"TWINERS"},
   {w:"HUNTERS",s3:["hen","run"],s4:["hurt","hunt"],s5:["shunt","unset"],s6:["hunter","unrest"]},
   {w:"MINERAL",s3:["rim","nil"],s4:["mile","mine"],s5:["liner","ramen"],s6:["mailer","remain"]},
-  {w:"MIGRATE",s3:["rim","age"],s4:["mare","game"],s5:["timer","grime"],s6:["gaiter","imager"]},
-  {w:"TURNERS",s3:["run","net"],s4:["turn","rent"],s5:["tuner","stern"],s6:["turner","tenure"]},
-  {w:"PASTURE",s3:["rap","sat"],s4:["past","tape"],s5:["spare","tapir"],s6:["repast","supert"]},
-  {w:"MORNING",s3:["nor","rim"],s4:["ring","iron"],s5:["minor","groin"],s6:["origin","mooing"]},
+  {w:"MIGRATE",s3:["rim","age"],s4:["mare","game"],s5:["timer","grime"],s6:["gaiter","imager"],w2:"RAGTIME"},
+  {w:"TURNERS",s3:["run","net"],s4:["turn","rent"],s5:["tuner","stern"],s6:["turner","unrest"],w2:"RETURNS"},
+  {w:"PASTURE",s3:["rap","sat"],s4:["past","tape"],s5:["spare","pause"],s6:["repast","supert"]},
+  {w:"MORNING",s3:["nor","rim"],s4:["ring","iron"],s5:["minor","groin"],s6:["moring","noming"]},
   {w:"SCORING",s3:["sir","cog"],s4:["corn","ring"],s5:["groin","rings"],s6:["coring","roings"]},
-  {w:"POINTER",s3:["ton","ore"],s4:["pine","tone"],s5:["point","toner"],s6:["pointe","norite"]},
-  {w:"SALTIER",s3:["sat","ale"],s4:["sail","rate"],s5:["trail","stale"],s6:["tailer","retail"]},
-  {w:"DETAILS",s3:["aid","sat"],s4:["said","tile"],s5:["tiled","tails"],s6:["detail","dilate"]},
-  {w:"DETAINS",s3:["and","tan"],s4:["dint","said"],s5:["saint","tides"],s6:["detain","sandei"]},
+  {w:"POINTER",s3:["ton","ore"],s4:["pine","tone"],s5:["point","toner"],s6:["pointe","norite"],w2:"PROTEIN"},
+  {w:"SALTIER",s3:["sat","ale"],s4:["sail","rate"],s5:["trail","stale"],s6:["tailer","retail"],w2:"REALIST"},
+  {w:"DETAILS",s3:["aid","sat"],s4:["said","tile"],s5:["tiled","tails"],s6:["detail","dilate"],w2:"DILATES"},
+  {w:"DETAINS",s3:["and","tan"],s4:["dint","said"],s5:["saint","tides"],s6:["detain","sandei"],w2:"INSTEAD"},
   {w:"SANDALS",s3:["and","lad"],s4:["land","lass"],s5:["lands","sands"],s6:["sandal","nasals"]},
   {w:"LARGEST",s3:["age","tar"],s4:["lest","rage"],s5:["glare","large"],s6:["alerts","legast"]},
-  {w:"SINGLES",s3:["gin","sin"],s4:["sign","line"],s5:["lined","lines"],s6:["single","linges"]},
+  {w:"SINGLES",s3:["gin","sin"],s4:["sign","line"],s5:["sling","lines"],s6:["single","linges"]},
   {w:"PLASTER",s3:["pal","rap"],s4:["last","part"],s5:["plate","lapse"],s6:["plater","relapt"]},
   {w:"BOATERS",s3:["ore","bat"],s4:["bore","boat"],s5:["roast","bores"],s6:["boater","boreas"]},
   {w:"LANDING",s3:["nil","lag"],s4:["land","dial"],s5:["laing","nidal"],s6:["lading","alding"]},
-  {w:"HUNTING",s3:["hit","gut"],s4:["hint","thin"],s5:["night","tunic"],s6:["nuthin","huting"]},
-  {w:"RESTING",s3:["sir","get"],s4:["grin","ring"],s5:["tiger","sting"],s6:["string","singer"]},
-  {w:"CLIMATE",s3:["aim","mat"],s4:["mice","malt"],s5:["metal","claim"],s6:["malice","timale"]},
-  {w:"GARDENS",s3:["and","ran"],s4:["rang","darn"],s5:["grand","darns"],s6:["randan","anders"]},
+  {w:"HUNTING",s3:["hit","gut"],s4:["hint","thin"],s5:["night","thing"],s6:["nuthin","huting"]},
+  {w:"RESTING",s3:["sir","get"],s4:["grin","ring"],s5:["tiger","sting"],s6:["string","singer"],w2:"STINGER"},
+  {w:"CLIMATE",s3:["aim","mat"],s4:["mice","malt"],s5:["metal","claim"],s6:["malice","camlet"]},
+  {w:"GARDENS",s3:["and","ran"],s4:["rang","darn"],s5:["grand","darns"],s6:["danger","snared"]},
   {w:"SLANTED",s3:["and","tan"],s4:["land","lane"],s5:["lends","lanes"],s6:["dental","sandel"]},
   {w:"MEDICAL",s3:["aim","lad"],s4:["mice","mild"],s5:["claim","ailed"],s6:["malice","laimed"]},
   {w:"STORING",s3:["sir","ton"],s4:["ring","iron"],s5:["groin","tongs"],s6:["strong","sortin"]},
-  {w:"PAINTED",s3:["and","tan"],s4:["pant","paid"],s5:["paint","tepid"],s6:["tanned","patine"]},
-  {w:"GARLAND",s3:["rag","lag"],s4:["rang","drag"],s5:["grand","gland"],s6:["randan","granda"]},
-  {w:"POINTER",s3:["ton","ore"],s4:["pine","tone"],s5:["point","toner"],s6:["pointe","retoin"]}
+  {w:"PAINTED",s3:["and","tan"],s4:["pant","paid"],s5:["paint","tepid"],s6:["detain","panted"]},
+  {w:"GARLAND",s3:["rag","lag"],s4:["rang","drag"],s5:["grand","gland"],s6:["raglan","granda"]},
+  {w:"POINTER",s3:["ton","ore"],s4:["pine","tone"],s5:["point","toner"],s6:["pointe","retoin"],w2:"PROTEIN"}
 ];
 
 
@@ -1726,6 +1770,16 @@ nigh nigher nighest high highs higher highest highly sigh sighs sighed sighing t
 tripe tripes trope tropes gripe gripes griped griping griper stripe stripes striped striping ripe ripely riper ripest pipe pipes piped piping piper pipers wipe wipes wiped wiping wiper wipers type types typed typing typist hype hypes hyped hyping swipe swipes swiped swiping snipe snipes sniped sniping sniper snipers grope gropes groped groping slope slopes sloped sloping elope elopes eloped eloping scope scopes scoped scoping hope hopes hoped hoping hopeful cope copes coped coping dope dopes doped doping mope mopes moped moping rope ropes roped roping tope topes pope popes lope lopes loped loping antelope antelopes envelope envelopes telescope telescopes telescoped microscope horoscope horoscopes gyroscope gyroscopes periscope periscopes
 
 toga togas yoga yogas saga sagas lava lavas java javas mama mamas papa papas panda pandas agenda agendas arena arenas banana bananas antenna antennas piranha piranhas phenomena stamina replica replicas formula formulas cinema cinemas dilemma dilemmas umbrella umbrellas orchestra orchestras ballerina ballerinas bacteria criteria era eras area areas idea ideas visa visas sofa sofas puma pumas tuna tunas luna soda sodas quota quotas stanza stanzas plaza plazas pizza pizzas piazza piazzas salsa salsas extra extras ultra ultras contra aura auras fauna flora parka parkas alpha alphas beta betas delta deltas theta thetas sigma sigmas omega omegas lambda lambdas plasma plasmas drama dramas trauma traumas schema schemas stigma stigmas enigma enigmas
+
+senate senates yes yeses usher ushers ushered ushering tare tares tared taring gain gains gained gaining nitre nitres tine tines meaty meatier meatiest sained goring gorings moring morings camlet camlets patina patinas raglan raglans granda grandas panted senatorial senator senators regain regains regained regaining niter niters yea yeas yeah nay nays lane lanes sane sanely saner sanest bane banes cane canes mane manes pane panes vane vanes wane wanes waned waning crane cranes craned craning plane planes planed planing stane stanes twine twines twined twining swine swines spine spines shrine shrines dine dines dined dining wine wines wined wining pine pines pined pining mine mines mined mining vine vines nine nines line lines lined lining fine fines fined fining
+
+grate grates grated grating grater graters irate irately prate prates prated prating crate crates crated crating crater craters berate berates berated berating elate elates elated elating deflate deflates deflated deflating inflate inflates inflated inflating relate relates related relating translate translates translated placate placates placated placating create creates created creating ornate ornately sedate sedately sedated sedating update updates updated updating negate negates negated negating locate locates located locating vacate vacates vacated vacating migrate migrates migrated migrating vibrate vibrates vibrated vibrating operate operates operated operating narrate narrates narrated narrating hydrate hydrates hydrated hydrating nitrate nitrates climate climates primate primates oblate oblates striate striates striated pirate pirates pirated pirating frustrate frustrates frustrated illustrate celebrate celebrates celebrated moderate moderates moderated tolerate tolerates tolerated separate separates separated generate generates generated decorate decorates decorated elaborate elaborates elaborated
+
+grate grates grated grating grater graters great greatly greater greatest greet greets greeted greeting greed greedy greedier greediest greedily green greens greened greening grief griefs grime grimes grimed griming grimy gripe gripes griped griping grill grills grilled grilling griller grin grins grinned grinning grit grits gritted gritting gritty groan groans groaned groaning grope gropes groped groping grove groves growl growls growled growling grudge grudges grudged grudging gruel gruels gruff gruffly gruffer gruffest grunt grunts grunted grunting crate irate prate prates prated prating prater irately irater iratest orate orates orated orating orator abate abates abated abating berate berates berated berating create creates created creating creator deflate deflates deflated deflating elate elates elated elating frustrate frustrates frustrated hydrate hydrates hydrated hydrating inflate inflates inflated inflating ingrate ingrates innate innately iterate iterates iterated iterating lactate lactates lactated lactating migrate migrates migrated migrating narrate narrates narrated narrating negate negates negated negating nitrate nitrates oblate oblates ovate ovately pirate pirates pirated pirating placate placates placated placating postulate postulates postulated prostrate prostrates prostrated pulsate pulsates pulsated pulsating rebate rebates rebated rebating relate relates related relating sedate sedately sedater sedatest skate skates skated skating skater skaters slate slates slated slating state states stated stating stature statures statue statues stagnate stagnates stagnated stagnating translate translates translated truncate truncates truncated truncating update updates updated updating vacate vacates vacated vacating vibrate vibrates vibrated vibrating
+
+fringe fringes fringed fringing cringe cringes cringed cringing twinge twinges twinged twinging syringe syringes syringed impinge impinges impinged impinging infringe infringes infringed infringing binge binges binged binging hinge hinges hinged hinging lunge lunges lunged lunging plunge plunges plunged plunging singe singes singed singeing tinge tinges tinged tingeing mange manges range ranges ranged ranging grange granges strange strangely stranger strangest mangy danger dangers manger mangers ranger rangers strangers grunge grungy challenge challenges challenged revenge revenges revenged revenging engage engages engaged engaging enrage enrages enraged enraging exchange exchanges exchanged exchanging arrange arranges arranged arranging derange deranges deranged deranging estrange estranges estranged estranging orange oranges sponge sponges sponged sponging lounge lounges lounged lounging scrounge scrounges scrounged scrounging
+
+signet signets cygnet cygnets magnet magnets magnetic cabinet cabinets bonnet bonnets sonnet sonnets cornet cornets hornet hornets garnet garnets planet planets blanket blankets bracket brackets cricket crickets thicket thickets trinket trinkets ticket tickets wicket wickets socket sockets rocket rockets pocket pockets locket lockets jacket jackets gasket gaskets casket caskets basket baskets bucket buckets nugget nuggets budget budgets budgeted budgeting target targets targeted targeting muppet muppets puppet puppets buffet buffets parfet parquet parquets bouquet bouquets banquet banquets quet racquet racquets croquet croquets tourney tourneys journey journeys journeyed journeying attorney attorneys money moneys honey honeys monkey monkeys donkey donkeys turkey turkeys jockey jockeys jockeyed jockeying hockey whiskey whiskeys
 `.trim().split(/\s+/));
 
 // -- LOAD DICTIONARY ---------------------------------------------
@@ -1785,7 +1839,13 @@ const ROWS=9;
 // Rows 0-1: 3 letters, Rows 2-3: 4 letters, Rows 4-5: 5 letters
 // Row 6: 6 letters, Row 7: 6 letters, Row 8: 7 letters
 // Total = 3+3+4+4+5+5+6+6+7 = 43 letters
-const ROW_LENS=[3,3,4,4,5,5,6,6,7];
+// ROW_LENS is set dynamically at game start based on whether word set has two 7-letter words
+let ROW_LENS=[3,3,4,4,5,5,6,6,7];
+function buildRowLens(wordSet){
+  // Row 8 (index 7) is 7 if the set has a second 7-letter word, otherwise 6
+  const hasSecondSeven = wordSet && wordSet.w2 && wordSet.w2.length === 7;
+  return [3,3,4,4,5,5,6, hasSecondSeven ? 7 : 6, 7];
+}
 const BROWN_ROWS=new Set([6,7,8]);
 
 function buildSlots(){
@@ -1795,7 +1855,7 @@ function buildSlots(){
   }
   return slots;
 }
-const ALL_SLOTS=buildSlots();
+let ALL_SLOTS=buildSlots();
 
 // -- GAME STATE --------------------------------------------------
 let grid;         // grid[r][c] = null | letter | '-'
@@ -1807,6 +1867,7 @@ let curWord;    // letters selected for the word in progress
 let usedIdx;    // rack indices currently selected in curWord (temporary)
 let spentIdx;   // rack indices permanently used in submitted words (greyed out)
 let score=0, timeLeft, active, multiplier;
+let level=1;
 let timerInt, flipped=false;
 
 const $=id=>document.getElementById(id);
@@ -1829,10 +1890,13 @@ function startGame(){
   currentSet = pickWordSet();
   // Add all the guaranteed words to the dict so they're always accepted
   const ws = currentSet;
-  [ws.w.toLowerCase(),...ws.s3,...ws.s4,...ws.s5,...ws.s6].forEach(w=>DICT.add(w));
+  [ws.w.toLowerCase(), ...(ws.w2?[ws.w2.toLowerCase()]:[]), ...ws.s3,...ws.s4,...ws.s5,...ws.s6].forEach(w=>DICT.add(w));
   rack = ws.w.split('');
   shuffle(rack);
 
+  // Rebuild row lengths based on whether this word set has two 7-letter words
+  ROW_LENS = buildRowLens(currentSet);
+  ALL_SLOTS = buildSlots();
   grid=Array.from({length:ROWS},(_,r)=>Array(ROW_LENS[r]).fill(null));
   slotFilled=Array(ALL_SLOTS.length).fill(false);
   curWord=[];usedIdx=[];spentIdx=[];usedWords=new Set();quotaMet=false;
@@ -1840,8 +1904,9 @@ function startGame(){
   bombTimers.forEach(t=>clearTimeout(t));bombTimers=[];
   flipped=false;
   // Reset power-related state
-  if(activePower==='flip') $('rack').style.transform='';
-  else $('rack').style.transform='';
+  $('rack').style.transform='';
+  $('rack').style.flexDirection='row';
+  $('rack').classList.remove('flip-active');
   clearInterval(jumbleInterval);
   clearTimeout(dimTimeout);
   $('dim-overlay').style.background='rgba(0,0,0,0)';
@@ -1896,17 +1961,36 @@ function renderGrid(){
 
 function renderRack(){
   const el=$('rack');el.innerHTML='';
-  rack.forEach((lt,i)=>{
+  el.style.flexDirection='row';
+  const n = rack.length;
+  for(let i=0; i<n; i++){
     const t=document.createElement('div');
-    // When flip is active, the visual position i maps to actualI
-    const actualI = (activePower==='flip') ? (rack.length - 1 - i) : i;
-    const isInWord = usedIdx.includes(actualI);
-    const isSpent  = spentIdx.includes(actualI);
+    const isInWord = usedIdx.includes(i);
+    const isSpent  = spentIdx.includes(i);
     t.className='rtile'+((isInWord||isSpent)?' used':'');
-    t.textContent=lt;
-    if(!isInWord && !isSpent) t.addEventListener('click',()=>pickLetter(i));
+    t.textContent=rack[i];
+    // Always add click listener — pickByRackIdx handles mirroring and blocking
+    t.addEventListener('click',()=>pickByRackIdx(i));
     el.appendChild(t);
-  });
+  }
+}
+
+function pickByRackIdx(i){
+  if(!active) return;
+  const n = rack.length;
+  const target = (activePower==='flip') ? (n - 1 - i) : i;
+  // In normal mode, block if the clicked tile itself is used/spent
+  if(activePower !== 'flip' && (usedIdx.includes(i) || spentIdx.includes(i))) return;
+  // Check if the TARGET tile is already used/spent
+  if(usedIdx.includes(target) || spentIdx.includes(target)){
+    if(activePower==='flip') $('word-msg').textContent='That letter is already used!';
+    return;
+  }
+  curWord.push(rack[target]);
+  usedIdx.push(target);
+  sndLetterPick();
+  renderRack();renderBuilder();
+  $('word-msg').textContent='';
 }
 
 function renderBuilder(){
@@ -1924,15 +2008,11 @@ function renderBuilder(){
 // -- LETTER INTERACTION ------------------------------------------
 function pickLetter(i){
   if(!active) return;
-  // FLIP power: tapping position i selects the mirrored letter (position 6-i)
-  const actualI = (activePower==='flip') ? (rack.length - 1 - i) : i;
-  if(usedIdx.includes(actualI) || spentIdx.includes(actualI)) return;
-  curWord.push(rack[actualI]);usedIdx.push(actualI);
-  renderRack();renderBuilder();
-  $('word-msg').textContent='';
+  pickByRackIdx(i);
 }
 function removeLetter(pos){
   usedIdx.splice(pos,1);curWord.splice(pos,1);
+  sndLetterRemove();
   renderRack();renderBuilder();
 }
 function clearWord(){
@@ -1941,6 +2021,7 @@ function clearWord(){
 }
 function scrambleRack(){
   if(!active) return;
+  sndShuffle();
   // Scramble only letters not currently selected in the word being built
   const freeIdx=rack.map((_,i)=>i).filter(i=>!usedIdx.includes(i));
   const freeLetters=freeIdx.map(i=>rack[i]);
@@ -1961,6 +2042,8 @@ const VALID_CACHE = new Set();
 const INVALID_CACHE = new Set();
 
 async function isValidWord(word) {
+  // Basic sanity — must have at least one vowel
+  if(!/[aeiou]/.test(word)) return false;
   // 1. Direct match in built-in dict
   if(DICT.has(word)) return true;
   if(VALID_CACHE.has(word)) return true;
@@ -2000,7 +2083,7 @@ async function isValidWord(word) {
   if(w.endsWith('ible')) roots.push(w.slice(0,-4));
 
   for(const root of roots) {
-    if(root.length >= 2 && DICT.has(root)) {
+    if(root.length >= 3 && DICT.has(root)) {
       VALID_CACHE.add(word);
       return true;
     }
@@ -2029,12 +2112,14 @@ async function submitWord(){
 
   if(!valid){
     $('word-msg').textContent=`"${word.toUpperCase()}" -- not a valid word`;
+    sndInvalidWord();
     shakeBuilder();return;
   }
 
   // Check for duplicate
   if(usedWords.has(word)){
     $('word-msg').textContent=`"${word.toUpperCase()}" already used!`;
+    sndAlreadyUsed();
     shakeBuilder();return;
   }
   $('word-msg').textContent='';
@@ -2066,6 +2151,7 @@ async function submitWord(){
   multiplier=1;
 
   usedWords.add(word);
+  sndWordSuccess(len);
   flashSlot(slot,len);
   moveBlockers();
   randomEvent();
@@ -2172,6 +2258,7 @@ function updateHUD(){
   const tb=$('timer-box');
   tb.textContent=m+':'+(s<10?'0':'')+s;
   tb.className=timeLeft<=15?'red pulse':timeLeft<=30?'red':'';
+  if(timeLeft<=10 && timeLeft>0 && active) sndTick();
 }
 
 // -- POPUP --------------------------------------------------------
@@ -2198,18 +2285,26 @@ function endGame(won){
     revealAnswers();
     setTimeout(()=>{
       checkAndSaveScore();
-      $('over-title').innerHTML='BOOM!<br>💣';
-      $('final-score').textContent='Score: '+score;
       const isLucky = activePower === 'luckystar';
-      if(!quotaMet && !isLucky) score=0;
+      const keepScore = quotaMet || isLucky;
+      if(keepScore){ advanceLevel(); } else { resetLevel(); }
+      sndBoom();
+      $('over-title').innerHTML='BOOM!<br>💣';
+      $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
+      $('final-score').textContent='Score: '+score;
+      if(!keepScore) score=0;
       $('over-sub').textContent = isLucky ? 'Time ran out — score carries over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
-                                  'The bomb went off! Score reset for next round.';
+                                  'The bomb went off! Score reset.';
       $('over-scr').style.display='flex';
     }, 2500);
   } else {
+    advanceLevel();
+    sndLevelUp();
     checkAndSaveScore();
+    sndWin();
     $('over-title').innerHTML='🏆<br>YOU WIN!';
+    $('over-level').textContent='Level ' + (level-1) + ' complete! → Level ' + level;
     $('final-score').textContent='Score: '+score;
     $('over-sub').textContent='Board cleared! Time bonus included.';
     $('over-scr').style.display='flex';
@@ -2219,7 +2314,7 @@ function endGame(won){
 function revealAnswers(){
   if(!currentSet) return;
   const ws = currentSet;
-  const answers = { 3:ws.s3, 4:ws.s4, 5:ws.s5, 6:ws.s6, 7:[ws.w.toLowerCase()] };
+  const answers = { 3:ws.s3, 4:ws.s4, 5:ws.s5, 6:ws.s6, 7:[ws.w.toLowerCase(), ws.w2 ? ws.w2.toLowerCase() : ws.w.toLowerCase()] };
   const revealedThisRound = new Set(usedWords); // start with already-used words
   ALL_SLOTS.forEach((slot,i)=>{
     if(slotFilled[i]) return;
@@ -2401,12 +2496,15 @@ function doSpin(){
     $('spin-icon').innerHTML = p.svg || p.id;
     $('spin-icon').style.transform = 'scale(1.2)';
     setTimeout(()=>$('spin-icon').style.transform='',80);
+    // Tick sound — pitch rises as spin slows
+    const freq = 300 + Math.floor((1 - delay/220) * 500);
+    playTone(freq, 'square', 0.04, 0.12);
     ticks++;
     if(ticks < totalTicks){
       delay = Math.min(delay + 8, 220);
       setTimeout(tick, delay);
     } else {
-      // Land on this power
+      // Land on this power — play a landing fanfare
       selectedPower = POWERS[spinIdx];
       spinning = false;
       $('spin-label').innerHTML = selectedPower.spinLabel;
@@ -2414,6 +2512,8 @@ function doSpin(){
       $('power-desc-title').textContent = selectedPower.name;
       $('power-desc-text').innerHTML = selectedPower.desc;
       $('power-start-btn').disabled = false;
+      // Landing sound — ascending chime
+      [523, 659, 784, 1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.18,0.25), i*80));
       // Lucky Star gives a free respin
       if(selectedPower.id === 'luckystar'){
         respinCount++;
@@ -2422,6 +2522,8 @@ function doSpin(){
       }
     }
   }
+  // Initial spin sound
+  playTone(200, 'sine', 0.1, 0.2);
   setTimeout(tick, delay);
 }
 
@@ -2489,6 +2591,8 @@ function initPower(){
   // Screen flip
   if(activePower==='flip'){
     $('rack').style.transform='';
+    $('rack').classList.add('flip-active');
+    renderRack();
     showPopup('SCREEN FLIP!','Tapping left picks right!');
   }
 
@@ -2527,6 +2631,7 @@ function initPower(){
       // Shuffle ALL 7 letters (including any in spentIdx — reset those too for jumble)
       shuffle(rack);
       spentIdx=[];
+      sndJumble();
       renderRack();
       showPopup('JUMBLE!','Letters scrambled!');
     }, 7000);
@@ -2597,6 +2702,7 @@ function activateHint(){
   hintMode = true;
   powerUsed = true;
   $('power-hud').querySelectorAll('.phud-item').forEach(el=>el.classList.add('used'));
+  sndHint();
   showPopup('? HINT MODE','Tap an empty row on the grid!');
   // Highlight empty rows to show they are tappable
   const rows = $('grid').querySelectorAll('.grow');
@@ -2752,6 +2858,7 @@ function fireGunShot(){
   fusePausedPct = (timeLeft / 120) * 100;
   $('spark').style.display = 'none';   // put out the fire
 
+  sndGunShot();
   showPopup('BOOM!','Fuse shot out! Relighting in 10s...');
 
   // After 10 seconds, relight from saved position
@@ -2760,6 +2867,7 @@ function fireGunShot(){
     if(!active) return;
     $('spark').style.display = 'block';
     fusePausedPct = null;
+    sndThaw();
     showPopup('The fuse relit!','');
   }, 10000);
 }
@@ -2792,6 +2900,7 @@ function dropBomb(){
   const idx = Math.floor(Math.random() * ALL_SLOTS.length);
   const slot = ALL_SLOTS[idx];
 
+  sndBombDrop();
   animateBombFall(slot.r, ()=>{
     if(slotFilled[idx]){
       // Destroy the word in this row
@@ -2908,6 +3017,197 @@ function useLightbulb(){
 
 // -- BOMB SPARK FLICKER -------------------------------------------
 
+
+
+// ── SOUND EFFECTS (Web Audio API - no files needed) ──────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new AudioCtx();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, volume=0.3, fadeOut=true){
+  if(!soundEnabled) return;
+  try{
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    if(fadeOut) gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch(e){}
+}
+
+function playNoise(duration, volume=0.2){
+  if(!soundEnabled) return;
+  try{
+    const ctx = getAudioCtx();
+    const bufSize = ctx.sampleRate * duration;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<bufSize;i++) data[i] = (Math.random()*2-1);
+    const source = ctx.createBufferSource();
+    source.buffer = buf;
+    const gain = ctx.createGain();
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    source.start();
+    source.stop(ctx.currentTime + duration);
+  } catch(e){}
+}
+
+// Sound effects
+function sndLetterPick(){
+  playTone(440 + Math.random()*200, 'sine', 0.08, 0.15);
+}
+function sndLetterRemove(){
+  playTone(300, 'sine', 0.07, 0.1);
+}
+function sndWordSuccess(len){
+  // Rising arpeggio - longer words = more notes
+  const notes = [262, 330, 392, 523, 659, 784, 1047];
+  const count = Math.min(len, notes.length);
+  const ctx = getAudioCtx();
+  if(!soundEnabled) return;
+  for(let i=0;i<count;i++){
+    try{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(notes[i], ctx.currentTime + i*0.07);
+      gain.gain.setValueAtTime(0, ctx.currentTime + i*0.07);
+      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + i*0.07 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.07 + 0.18);
+      osc.start(ctx.currentTime + i*0.07);
+      osc.stop(ctx.currentTime + i*0.07 + 0.2);
+    } catch(e){}
+  }
+}
+function sndInvalidWord(){
+  // Low buzzer
+  playTone(150, 'sawtooth', 0.2, 0.25);
+}
+function sndAlreadyUsed(){
+  // Double buzz
+  playTone(200, 'square', 0.1, 0.2);
+  setTimeout(()=>playTone(180, 'square', 0.1, 0.2), 120);
+}
+function sndBoom(){
+  // Explosion: noise burst + low thud
+  playNoise(0.4, 0.4);
+  playTone(60, 'sine', 0.5, 0.4);
+  playTone(45, 'sine', 0.6, 0.3);
+}
+function sndBoomer(){
+  // Alert sound for boomer events
+  playTone(800, 'square', 0.08, 0.2);
+  setTimeout(()=>playTone(600, 'square', 0.08, 0.2), 100);
+  setTimeout(()=>playTone(400, 'square', 0.12, 0.2), 200);
+}
+function sndFreeze(){
+  // Icy descending tones
+  playTone(1200, 'sine', 0.15, 0.2);
+  setTimeout(()=>playTone(900,  'sine', 0.15, 0.15), 120);
+  setTimeout(()=>playTone(600,  'sine', 0.2,  0.15), 240);
+}
+function sndThaw(){
+  // Rising tones
+  playTone(600, 'sine', 0.12, 0.15);
+  setTimeout(()=>playTone(900,  'sine', 0.12, 0.15), 100);
+  setTimeout(()=>playTone(1200, 'sine', 0.15, 0.15), 200);
+}
+function sndGunShot(){
+  playNoise(0.15, 0.5);
+  playTone(180, 'sine', 0.3, 0.3);
+}
+function sndBombDrop(){
+  // Whistle down then boom
+  if(!soundEnabled) return;
+  try{
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1000, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime + 0.48);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch(e){}
+  setTimeout(sndBoom, 500);
+}
+function sndJumble(){
+  // Rapid random beeps
+  if(!soundEnabled) return;
+  for(let i=0;i<6;i++){
+    setTimeout(()=>playTone(200+Math.random()*600, 'square', 0.06, 0.15), i*60);
+  }
+}
+function sndShuffle(){
+  // Swoosh
+  playNoise(0.15, 0.15);
+  playTone(600, 'sine', 0.12, 0.1);
+}
+function sndLevelUp(){
+  // Fanfare
+  const melody = [523, 659, 784, 1047];
+  melody.forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.25,0.3), i*120));
+}
+function sndWin(){
+  const melody = [523, 659, 784, 1047, 1319, 1047, 784, 1047];
+  melody.forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.2,0.3), i*100));
+}
+function sndTick(){
+  playTone(800, 'square', 0.05, 0.08);
+}
+function sndHint(){
+  playTone(700, 'sine', 0.1, 0.15);
+  setTimeout(()=>playTone(900, 'sine', 0.15, 0.15), 100);
+}
+function sndBlocker(){
+  playTone(300, 'sawtooth', 0.15, 0.2);
+  playTone(250, 'sawtooth', 0.15, 0.2);
+}
+
+// Mute toggle button - added to header
+function toggleSound(){
+  soundEnabled = !soundEnabled;
+  $('sound-btn').textContent = soundEnabled ? '🔊' : '🔇';
+}
+// ── LEVEL SYSTEM ──────────────────────────────────────────────
+function updateLevelDisplay(){
+  $('level-num').textContent = level;
+  // Stars: 1 per 5 levels
+  const stars = Math.min(10, Math.floor((level-1)/5));
+  $('level-stars').textContent = stars > 0 ? '⭐'.repeat(stars) : '';
+}
+
+function advanceLevel(){
+  level++;
+  updateLevelDisplay();
+}
+
+function resetLevel(){
+  level=1;
+  updateLevelDisplay();
+}
 // ── HIGH SCORES ──────────────────────────────────────────────────
 const MAX_SCORES = 10;
 let highScores = [];
