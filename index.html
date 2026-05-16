@@ -1786,29 +1786,112 @@ signet signets cygnet cygnets magnet magnets magnetic cabinet cabinets bonnet bo
 // Dictionary is embedded -- no network needed. Also try to fetch a
 // larger word list to supplement, but game works fine without it.
 async function loadDictionary(){
-  setLoad('Loading dictionary-',30);
-  // Try to fetch a large supplemental word list
-  try{
-    const r=await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
-    if(r.ok){
-      const txt=await r.text();
-      txt.trim().split(/\s+/).forEach(w=>{
-        w=w.toLowerCase().trim();
-        if(/^[a-z]{2,10}$/.test(w)) DICT.add(w);
-      });
-      setLoad('Loaded '+DICT.size.toLocaleString()+' words-',75);
-    }
-  }catch(e){}
+  setLoad('Loading dictionary...',10);
 
-  setLoad('Building word sets-',85);
-  await sleep(30);
+  const sources = [
+    'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt',
+    'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
+  ];
 
-  // Build 7-letter pool  // Word sets are pre-built in WORD_SETS -- no dynamic building needed
+  let loaded = false;
+  for(const url of sources){
+    try{
+      setLoad('Fetching word list...',20);
+      const r = await fetch(url);
+      if(r.ok){
+        const txt = await r.text();
+        setLoad('Processing words...',50);
+        await sleep(10);
+        const words = txt.trim().split(/\s+/);
+        for(const w of words){
+          const lw = w.toLowerCase().trim();
+          if(/^[a-z]{3,7}$/.test(lw)) DICT.add(lw);
+        }
+        setLoad(`Loaded ${DICT.size.toLocaleString()} words!`,65);
+        loaded = true;
+        break;
+      }
+    }catch(e){}
+  }
 
-  setLoad(`Ready! ${DICT.size.toLocaleString()} words`,100);
+  if(!loaded){
+    setLoad('Using built-in dictionary...',65);
+  }
+
+  // Build dynamic word sets from the loaded dictionary
+  setLoad('Building word sets...',75);
+  await sleep(10);
+  buildDynamicWordSets();
+  setLoad(`Ready! ${DICT.size.toLocaleString()} words, ${WORD_SETS.length} puzzles`,100);
   await sleep(400);
   document.getElementById('load-scr').style.display='none';
   document.getElementById('start-scr').style.display='flex';
+}
+
+function buildDynamicWordSets(){
+  // Get all 7-letter words from DICT
+  const sevens = [...DICT].filter(w => w.length === 7);
+  // Shuffle so we get variety each session
+  shuffle(sevens);
+
+  // For each 7-letter word, try to find sub-words of each required length
+  // We need: two 3-letter, two 4-letter, two 5-letter, two 6-letter words
+  // All must be makeable from the 7-letter word's letters
+  let added = 0;
+  const target = 200; // aim for up to 200 dynamic sets
+
+  for(const seven of sevens){
+    if(added >= target) break;
+    const letters = seven.split('');
+
+    function canMake(word){
+      const avail = {};
+      for(const c of letters) avail[c] = (avail[c]||0) + 1;
+      for(const c of word){
+        if(!avail[c]) return false;
+        avail[c]--;
+      }
+      return true;
+    }
+
+    // Find sub-words of each length from DICT
+    const subs = {3:[], 4:[], 5:[], 6:[]};
+    for(const len of [3,4,5,6]){
+      for(const w of DICT){
+        if(w.length === len && canMake(w)){
+          subs[len].push(w);
+          if(subs[len].length >= 6) break; // enough candidates
+        }
+      }
+    }
+
+    // Need at least 2 of each length
+    if(subs[3].length < 2 || subs[4].length < 2 ||
+       subs[5].length < 2 || subs[6].length < 2) continue;
+
+    // Check for anagram partner (w2)
+    let w2 = null;
+    const sevenSorted = seven.split('').sort().join('');
+    for(const candidate of sevens){
+      if(candidate !== seven &&
+         candidate.split('').sort().join('') === sevenSorted){
+        w2 = candidate;
+        break;
+      }
+    }
+
+    const entry = {
+      w: seven.toUpperCase(),
+      s3: [subs[3][0], subs[3][1]],
+      s4: [subs[4][0], subs[4][1]],
+      s5: [subs[5][0], subs[5][1]],
+      s6: [subs[6][0], subs[6][1]]
+    };
+    if(w2) entry.w2 = w2.toUpperCase();
+
+    WORD_SETS.push(entry);
+    added++;
+  }
 }
 function setLoad(msg,pct){
   document.getElementById('load-msg').textContent=msg;
@@ -2718,22 +2801,28 @@ function activateHint(){
 function revealHint(r){
   if(!hintMode) return;
   hintMode = false;
-  // Remove outlines
   $('grid').querySelectorAll('.grow').forEach(row=>{ row.style.outline=''; row.style.cursor=''; });
-  // Find a word from the current set that fits this row's length
   const len = ROW_LENS[r];
   const ws = currentSet;
-  let hint = null;
-  if(len===3) hint = ws.s3[Math.floor(Math.random()*ws.s3.length)];
-  else if(len===4) hint = ws.s4[Math.floor(Math.random()*ws.s4.length)];
-  else if(len===5) hint = ws.s5[Math.floor(Math.random()*ws.s5.length)];
-  else if(len===6) hint = ws.s6[Math.floor(Math.random()*ws.s6.length)];
-  else if(len===7) hint = ws.w.toLowerCase();
+
+  // Build list of candidates for this length, excluding already-used words
+  let candidates = [];
+  if(len===3) candidates = ws.s3.slice();
+  else if(len===4) candidates = ws.s4.slice();
+  else if(len===5) candidates = ws.s5.slice();
+  else if(len===6) candidates = ws.s6.slice();
+  else if(len===7){
+    candidates = [ws.w.toLowerCase()];
+    if(ws.w2) candidates.push(ws.w2.toLowerCase());
+  }
+
+  // Prefer a word not already used
+  let hint = candidates.find(w => !usedWords.has(w)) || candidates[0];
   if(!hint) return;
+
   // Only reveal up to half the letters
   const halfLen = Math.ceil(hint.length / 2);
   const hintLetters = hint.toUpperCase().split('');
-  // Flash partial hint on the row
   const rows = $('grid').querySelectorAll('.grow');
   const rowEl = rows[r];
   if(!rowEl) return;
@@ -2745,7 +2834,6 @@ function revealHint(r){
       cells[i].style.color = '#fff';
     }
   });
-  // Clear the hint after 2 seconds
   setTimeout(()=>{
     hintLetters.forEach((_, i)=>{
       if(i < halfLen && cells[i]){
