@@ -2314,6 +2314,7 @@ async function submitWord(){
     }
     if(awarded){
       sndLevelUp();
+      saveGameState();
       showAwardPopup('🎯 RESPIN EARNED!', `${Math.floor(score/1000)*1000} points!`);
     }
   }, 900);
@@ -2486,6 +2487,7 @@ function endGame(won){
     revealAnswers();
     setTimeout(()=>{
       checkAndSaveScore();
+      saveGameState();
       const isLucky = activePower === 'luckystar';
       const keepScore = quotaMet || isLucky;
       if(keepScore){
@@ -2494,14 +2496,14 @@ function endGame(won){
         if(totalWins % 8 === 0){
           hintStock++;
           updateHintBtn();
-          sndLevelUp(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
+          sndLevelUp(); saveGameState(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
         }
       } else { resetLevel(); }
       sndBoom();
       $('over-title').innerHTML='BOOM!<br>💣';
       $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
       $('final-score').textContent='Score: '+score;
-      if(!keepScore){ score=0; respinMilestone=1000; }
+      if(!keepScore){ score=0; respinMilestone=1000; saveGameState(); }
       $('over-sub').textContent = isLucky ? 'Time ran out — score carries over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
                                   'The bomb went off! Score reset.';
@@ -2514,7 +2516,7 @@ function endGame(won){
     if(totalWins % 8 === 0){
       hintStock++;
       updateHintBtn();
-      sndLevelUp(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
+      sndLevelUp(); saveGameState(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
     }
     checkAndSaveScore();
     sndWin();
@@ -3461,6 +3463,46 @@ function useStoredHint(){
   });
   showPopup('HINT!', 'Tap an empty row for a hint');
 }
+
+// ── GAME STATE PERSISTENCE ────────────────────────────────────
+const SAVE_KEY = 'wordboom-gamestate';
+
+async function saveGameState(){
+  try{
+    const state = {
+      score,
+      level,
+      respinCount,
+      respinMilestone,
+      hintStock,
+      totalWins,
+      version: 1
+    };
+    await window.storage.set(SAVE_KEY, JSON.stringify(state));
+  } catch(e){}
+}
+
+async function loadGameState(){
+  try{
+    const result = await window.storage.get(SAVE_KEY);
+    if(result && result.value){
+      const state = JSON.parse(result.value);
+      if(state.version === 1){
+        score         = state.score         || 0;
+        level         = state.level         || 1;
+        respinCount   = state.respinCount   || 0;
+        respinMilestone = state.respinMilestone || 1000;
+        hintStock     = state.hintStock     || 0;
+        totalWins     = state.totalWins     || 0;
+        // Update displays
+        updateLevelDisplay();
+        $('respin-count').textContent = respinCount;
+        $('hint-count').textContent   = hintStock;
+        $('score-val').textContent    = score;
+      }
+    }
+  } catch(e){}
+}
 // ── HIGH SCORES ──────────────────────────────────────────────────
 const MAX_SCORES = 10;
 let highScores = [];
@@ -3553,6 +3595,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   loadHighScores();
+  await loadGameState();
   loadDictionary();
 });
 </script>
