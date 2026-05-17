@@ -3469,7 +3469,7 @@ function useStoredHint(){
 // ── GAME STATE PERSISTENCE ────────────────────────────────────
 const SAVE_KEY = 'wordboom-gamestate';
 
-async function saveGameState(){
+function saveGameState(){
   try{
     const state = {
       score,
@@ -3480,47 +3480,43 @@ async function saveGameState(){
       totalWins,
       version: 1
     };
-    await window.storage.set(SAVE_KEY, JSON.stringify(state));
-    console.log('Saved:', state);
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch(e){ console.error('Save failed:', e); }
 }
 
-async function loadGameState(){
+function loadGameState(){
   try{
-    const result = await window.storage.get(SAVE_KEY);
-    if(result && result.value){
-      const state = JSON.parse(result.value);
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      const state = JSON.parse(raw);
       if(state.version === 1){
-        score         = state.score         || 0;
-        level         = state.level         || 1;
-        respinCount   = state.respinCount   || 0;
+        score           = state.score           || 0;
+        level           = state.level           || 1;
+        respinCount     = state.respinCount     || 0;
         respinMilestone = state.respinMilestone || 1000;
-        hintStock     = state.hintStock     || 0;
-        totalWins     = state.totalWins     || 0;
-        // Update displays
+        hintStock       = state.hintStock       || 0;
+        totalWins       = state.totalWins       || 0;
         updateLevelDisplay();
         $('respin-count').textContent = respinCount;
         $('hint-count').textContent   = hintStock;
         $('score-val').textContent    = score;
       }
     }
-  } catch(e){}
+  } catch(e){ console.error('Load failed:', e); }
 }
 // ── HIGH SCORES ──────────────────────────────────────────────────
 const MAX_SCORES = 10;
 let highScores = [];
 let lastScoreIdx = -1; // index of most recently added score
 
-async function loadHighScores(){
+function loadHighScores(){
   try{
-    const result = await window.storage.get('wordboom-highscores');
-    if(result && result.value){
-      highScores = JSON.parse(result.value);
-    }
+    const raw = localStorage.getItem('wordboom-highscores');
+    if(raw) highScores = JSON.parse(raw);
   }catch(e){ highScores = []; }
 }
 
-async function saveHighScore(s){
+function saveHighScore(s){
   const entry = {
     score: s,
     date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
@@ -3530,7 +3526,7 @@ async function saveHighScore(s){
   if(highScores.length > MAX_SCORES) highScores = highScores.slice(0, MAX_SCORES);
   lastScoreIdx = highScores.findIndex(e=>e===entry);
   try{
-    await window.storage.set('wordboom-highscores', JSON.stringify(highScores));
+    localStorage.setItem('wordboom-highscores', JSON.stringify(highScores));
   }catch(e){}
 }
 
@@ -3570,20 +3566,14 @@ function renderHighScores(){
   });
 }
 
-async function checkAndSaveScore(){
+function checkAndSaveScore(){
   if(score > 0){
-    await saveHighScore(score);
+    saveHighScore(score);
   }
 }
 // -- BOOT --------------------------------------------------------
 window.addEventListener('beforeunload', ()=>{
-  // Synchronous save attempt on tab close
-  try{
-    const state = {
-      score, level, respinCount, respinMilestone, hintStock, totalWins, version:1
-    };
-    window.storage.set('wordboom-gamestate', JSON.stringify(state));
-  }catch(e){}
+  saveGameState();
 });
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -3608,7 +3598,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   });
 
   loadHighScores();
-  await loadGameState();
+  loadGameState();
   loadDictionary();
 });
 </script>
