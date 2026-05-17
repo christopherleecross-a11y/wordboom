@@ -2470,6 +2470,7 @@ function drainPopupQueue(){
 
 // -- END GAME -----------------------------------------------------
 function endGame(won){
+  saveGameState(); // save immediately when round ends
   active=false;clearInterval(timerInt);
   clearTimeout(fuseResumeTimer);
   clearTimeout(freezeTimer);
@@ -3481,12 +3482,14 @@ function saveGameState(){
       version: 1
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    console.log('Game saved:', state);
   } catch(e){ console.error('Save failed:', e); }
 }
 
 function loadGameState(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
+    console.log('Loading saved state:', raw);
     if(raw){
       const state = JSON.parse(raw);
       if(state.version === 1){
@@ -3500,7 +3503,10 @@ function loadGameState(){
         $('respin-count').textContent = respinCount;
         $('hint-count').textContent   = hintStock;
         $('score-val').textContent    = score;
+        console.log('State restored:', state);
       }
+    } else {
+      console.log('No saved state found');
     }
   } catch(e){ console.error('Load failed:', e); }
 }
@@ -3599,6 +3605,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   loadHighScores();
   loadGameState();
+  // Auto-save every 30 seconds
+  setInterval(saveGameState, 30000);
   loadDictionary();
 });
 </script>
