@@ -659,6 +659,37 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   font-size:18px;
   font-family:'Fredoka One',cursive;
 }
+
+/* ── HINTS BUTTON (in-game, below power icon) ── */
+#hints-sidebar{
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  margin-top:6px;
+}
+#hints-label{
+  color:#fff;
+  font-family:'Fredoka One',cursive;
+  font-size:11px;
+  letter-spacing:1px;
+  text-shadow:0 1px 2px rgba(0,0,0,0.5);
+}
+#hints-btn{
+  background:linear-gradient(180deg,#2266cc,#1144aa);
+  border:3px solid #ffdd44;
+  border-right:none;
+  border-radius:8px 0 0 8px;
+  color:#fff;
+  font-family:'Fredoka One',cursive;
+  font-size:22px;
+  width:60px;height:52px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5);
+  pointer-events:all;
+}
+#hints-btn:active{opacity:0.8;}
 </style>
 </head>
 <body>
@@ -800,6 +831,10 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   <div id="right-sidebar">
     <div id="timer-box">2:00</div>
     <div id="power-hud"></div>
+    <div id="hints-sidebar">
+      <div id="hints-label">HINTS</div>
+      <button id="hints-btn" onclick="useStoredHint()">0</button>
+    </div>
   </div>
   <div id="freeze-overlay"></div>
   <div id="dim-overlay"></div>
@@ -1780,6 +1815,8 @@ grate grates grated grating grater graters great greatly greater greatest greet 
 fringe fringes fringed fringing cringe cringes cringed cringing twinge twinges twinged twinging syringe syringes syringed impinge impinges impinged impinging infringe infringes infringed infringing binge binges binged binging hinge hinges hinged hinging lunge lunges lunged lunging plunge plunges plunged plunging singe singes singed singeing tinge tinges tinged tingeing mange manges range ranges ranged ranging grange granges strange strangely stranger strangest mangy danger dangers manger mangers ranger rangers strangers grunge grungy challenge challenges challenged revenge revenges revenged revenging engage engages engaged engaging enrage enrages enraged enraging exchange exchanges exchanged exchanging arrange arranges arranged arranging derange deranges deranged deranging estrange estranges estranged estranging orange oranges sponge sponges sponged sponging lounge lounges lounged lounging scrounge scrounges scrounged scrounging
 
 signet signets cygnet cygnets magnet magnets magnetic cabinet cabinets bonnet bonnets sonnet sonnets cornet cornets hornet hornets garnet garnets planet planets blanket blankets bracket brackets cricket crickets thicket thickets trinket trinkets ticket tickets wicket wickets socket sockets rocket rockets pocket pockets locket lockets jacket jackets gasket gaskets casket caskets basket baskets bucket buckets nugget nuggets budget budgets budgeted budgeting target targets targeted targeting muppet muppets puppet puppets buffet buffets parfet parquet parquets bouquet bouquets banquet banquets quet racquet racquets croquet croquets tourney tourneys journey journeys journeyed journeying attorney attorneys money moneys honey honeys monkey monkeys donkey donkeys turkey turkeys jockey jockeys jockeyed jockeying hockey whiskey whiskeys
+
+who whom whose what when where why how the and but for nor yet its him her his hers they them their you your yours she our ours age ago aid aim air all arc are ark arm art ask ate awe axe aye bag ban bar bat bay bed bet big bit bow box boy bud bug bun bus buy cab cam can cap car cat cob cod cop cot cow cry cup cut dad dam dew did dig dim dip doe dog dot dub dug duo ear eat egg ego elk elm emu end era eve ewe eye fad fan far fat fed fen few fig fin fit fix fly foe fog fop fox fry fun fur gag gap gem gin gnu god got gum gun gut guy gym had ham has hat hay hew hid hip hit hob hod hoe hog hop hot hug hum hut ice icy ill imp ink inn ion ire ivy jab jag jam jar jaw jay jet jig job jog jot joy jug jut keg kin kit lab lad lap law lax lay leg let lid lip lit log lot low lug mad man map mar mat maw may men mid mob mop mud mug nab nag nap nip nob nod not now nun nut oak oaf oar oat odd ode off oft ohm oil old orb ore out owe owl own pad pal pan pap par pat paw pay peg pen pep per pet pew pie pig pin pit ply pod pop pot pow pry pub pug pun pup pus put rag ram ran rap rat raw ray red ref rep rev rid rig rim rip rob rod rot row rub rug rum run rut rye sad sag sap sat saw say sea set sew shy sin sip sir sis sit ski sky sly sob sod son sop sow spa spy sty sub sue sum sun sup tab tan tap tar tat tax thy tic tie tin tip toe ton too top tot tow toy try tub tug tun two urn use van vat via vie vim vow wag war was wax web wed wig win wit woe wok won woo wow yak yam yap yaw yep yew zap zed zen zig zip zoo
 `.trim().split(/\s+/));
 
 // -- LOAD DICTIONARY ---------------------------------------------
@@ -2324,6 +2361,14 @@ function setFuse(pct){
 // -- HUD ---------------------------------------------------------
 function updateHUD(){
   $('score-val').textContent=score;
+  updateHintBtn();
+  // Award a respin every 1000 points
+  while(score >= respinMilestone){
+    respinCount++;
+    $('respin-count').textContent = respinCount;
+    respinMilestone += 1000;
+    showPopup('RESPIN EARNED!', `${respinMilestone - 1000} points reached!`);
+  }
   // Letters Left = quota countdown (30), stops at 0
   // Lucky Star = no quota, hide the counter
   if(activePower === 'luckystar'){
@@ -2361,6 +2406,11 @@ function endGame(won){
   clearInterval(jumbleInterval);
   bombTimers.forEach(t=>clearTimeout(t));bombTimers=[];
   fusePausedPct=null;
+  hintMode=false;  // hint is lost if not used this round
+  activePower=null;
+  powerUsed=false;
+  $('power-hud').innerHTML='';
+  $('hints-sidebar').style.display='none';
   $('drag-target').style.display='none';
   $('gun-flash').style.display='none';
 
@@ -2370,12 +2420,20 @@ function endGame(won){
       checkAndSaveScore();
       const isLucky = activePower === 'luckystar';
       const keepScore = quotaMet || isLucky;
-      if(keepScore){ advanceLevel(); } else { resetLevel(); }
+      if(keepScore){
+        advanceLevel();
+        totalWins++;
+        if(totalWins % 8 === 0){
+          hintStock++;
+          updateHintBtn();
+          showPopup('HINT EARNED!', `${totalWins} wins — hint awarded!`);
+        }
+      } else { resetLevel(); }
       sndBoom();
       $('over-title').innerHTML='BOOM!<br>💣';
       $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
       $('final-score').textContent='Score: '+score;
-      if(!keepScore) score=0;
+      if(!keepScore){ score=0; respinMilestone=1000; }
       $('over-sub').textContent = isLucky ? 'Time ran out — score carries over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
                                   'The bomb went off! Score reset.';
@@ -2384,6 +2442,12 @@ function endGame(won){
   } else {
     advanceLevel();
     sndLevelUp();
+    totalWins++;
+    if(totalWins % 8 === 0){
+      hintStock++;
+      updateHintBtn();
+      showPopup('HINT EARNED!', `${totalWins} wins — hint awarded!`);
+    }
     checkAndSaveScore();
     sndWin();
     $('over-title').innerHTML='🏆<br>YOU WIN!';
@@ -2448,6 +2512,7 @@ function showStart(){
   $('start-scr').style.display='flex';
   $('over-scr').style.display='none';
   $('power-scr').style.display='none';
+  $('hint-count').textContent = hintStock;
 }
 
 // -------------------------------------------------------------------
@@ -2524,7 +2589,10 @@ let spinning = false;
 let spinInterval = null;
 let spinIdx = 0;
 let respinCount = 0;
+let respinMilestone = 1000; // next score milestone for a respin
 let hintMode = false;
+let hintStock = 0; // accumulated hints, persist across rounds
+let totalWins = 0; // total wins across all sessions
 
 function handleSpinClick(){
   if(spinning) return;
@@ -2557,6 +2625,8 @@ function showPowerSelector(){
   selectedPower = null;
   spinning = false;
   $('power-start-btn').disabled = true;
+  $('hint-count').textContent = hintStock;
+  $('respin-count').textContent = respinCount;
   $('spin-icon').innerHTML = '<svg viewBox="0 0 100 100"><text x="50" y="65" text-anchor="middle" font-size="60" fill="#aaccff">?</text></svg>';
   $('spin-label').innerHTML='TOUCH HERE<br>TO SPIN';
   $('spin-instruction').textContent='';
@@ -2597,11 +2667,8 @@ function doSpin(){
       $('power-start-btn').disabled = false;
       // Landing sound — ascending chime
       [523, 659, 784, 1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.18,0.25), i*80));
-      // Lucky Star gives a free respin
       if(selectedPower.id === 'luckystar'){
-        respinCount++;
-        $('respin-count').textContent = respinCount;
-        showPopup('* LUCKY STAR!','You got a free respin!');
+        showPopup('* LUCKY STAR!','No quota this round — score carries over!');
       }
     }
   }
@@ -2820,8 +2887,9 @@ function revealHint(r){
   let hint = candidates.find(w => !usedWords.has(w)) || candidates[0];
   if(!hint) return;
 
-  // Only reveal up to half the letters
-  const halfLen = Math.ceil(hint.length / 2);
+  // Reveal exactly this many letters based on word length
+  const revealCount = {3:1, 4:2, 5:2, 6:3, 7:3};
+  const halfLen = revealCount[hint.length] || 2;
   const hintLetters = hint.toUpperCase().split('');
   const rows = $('grid').querySelectorAll('.grow');
   const rowEl = rows[r];
@@ -3295,6 +3363,35 @@ function advanceLevel(){
 function resetLevel(){
   level=1;
   updateLevelDisplay();
+}
+
+// ── STORED HINTS ──────────────────────────────────────────────
+function updateHintBtn(){
+  const sidebar = $('hints-sidebar');
+  const btn = $('hints-btn');
+  if(hintStock > 0 && active){
+    sidebar.style.display = 'flex';
+    btn.textContent = hintStock;
+  } else {
+    sidebar.style.display = 'none';
+  }
+}
+
+function useStoredHint(){
+  if(!active || hintStock <= 0) return;
+  hintStock--;
+  updateHintBtn();
+  // Activate hint mode same as the hint power
+  hintMode = true;
+  const rows = $('grid').querySelectorAll('.grow');
+  rows.forEach((row, r) => {
+    if(!slotFilled[r]){
+      row.style.outline = '2px dashed #4488ff';
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', ()=>revealHint(r), {once:true});
+    }
+  });
+  showPopup('HINT!', 'Tap an empty row for a hint');
 }
 // ── HIGH SCORES ──────────────────────────────────────────────────
 const MAX_SCORES = 10;
