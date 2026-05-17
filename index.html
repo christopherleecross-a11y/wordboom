@@ -1168,6 +1168,7 @@ function startGame(){
   grid=Array.from({length:ROWS},(_,r)=>Array(ROW_LENS[r]).fill(null));
   slotFilled=Array(ALL_SLOTS.length).fill(false);
   curWord=[];usedIdx=[];spentIdx=[];usedWords=new Set();quotaMet=false;
+  for(const k in activeHints) delete activeHints[k];
   timeLeft=120;active=true;multiplier=1;fusePausedPct=null;clearTimeout(fuseResumeTimer);
   bombTimers.forEach(t=>clearTimeout(t));bombTimers=[];
   flipped=false;
@@ -1224,6 +1225,15 @@ function renderGrid(){
       row.appendChild(d);
     }
     g.appendChild(row);
+  }
+  // Redraw any active hints on unfilled rows; clear hints on filled rows
+  for(const r in activeHints){
+    const slotI = ALL_SLOTS.findIndex(s=>s.r===parseInt(r));
+    if(slotFilled[slotI]){
+      delete activeHints[r]; // word was filled — clear the hint
+    } else {
+      drawHintForRow(parseInt(r));
+    }
   }
 }
 
@@ -2062,6 +2072,9 @@ function activateHint(){
   });
 }
 
+// Track active hints: rowIndex -> {letters, halfLen}
+const activeHints = {};
+
 function revealHint(r){
   if(!hintMode) return;
   hintMode = false;
@@ -2087,29 +2100,31 @@ function revealHint(r){
   // Reveal exactly this many letters based on word length
   const revealCount = {3:1, 4:2, 5:2, 6:3, 7:3};
   const halfLen = revealCount[hint.length] || 2;
-  const hintLetters = hint.toUpperCase().split('');
+
+  // Store the hint so renderGrid can keep showing it
+  activeHints[r] = { letters: hint.toUpperCase().split(''), halfLen };
+
+  // Draw hint letters immediately
+  drawHintForRow(r);
+
+  showPopup('HINT: ' + hint.toUpperCase().slice(0, halfLen) + '...', `${halfLen} of ${hint.length} letters`);
+}
+
+function drawHintForRow(r){
+  const hint = activeHints[r];
+  if(!hint) return;
   const rows = $('grid').querySelectorAll('.grow');
   const rowEl = rows[r];
   if(!rowEl) return;
   const cells = rowEl.querySelectorAll('.cell');
-  hintLetters.forEach((ch, i)=>{
-    if(i < halfLen && cells[i]){
+  hint.letters.forEach((ch, i)=>{
+    if(i < hint.halfLen && cells[i] && !slotFilled[ALL_SLOTS.findIndex(s=>s.r===r)]){
       cells[i].textContent = ch;
       cells[i].style.background = 'linear-gradient(180deg,#9966cc,#6633aa)';
       cells[i].style.color = '#fff';
+      cells[i].style.borderColor = '#7744bb';
     }
   });
-  setTimeout(()=>{
-    hintLetters.forEach((_, i)=>{
-      if(i < halfLen && cells[i]){
-        cells[i].textContent = '';
-        cells[i].style.background = '';
-        cells[i].style.color = '';
-      }
-    });
-    renderGrid();
-  }, 2000);
-  showPopup('HINT: ' + hint.toUpperCase().slice(0, halfLen) + '...', `${halfLen} of ${hint.length} letters`);
 }
 
 function useFreeze(){
