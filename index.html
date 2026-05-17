@@ -690,6 +690,29 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   pointer-events:all;
 }
 #hints-btn:active{opacity:0.8;}
+
+/* Award popup - appears at top of screen, never covers grid answers */
+#award-popup{
+  position:absolute;top:52px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,10,40,0.96);
+  border:3px solid #ffdd44;
+  border-radius:12px;
+  padding:8px 22px;
+  z-index:160;text-align:center;
+  pointer-events:none;display:none;
+  min-width:180px;
+}
+#award-popup.show{display:block;animation:awardshow 2.5s ease-out forwards;}
+@keyframes awardshow{
+  0%{opacity:0;transform:translateX(-50%) scale(0.8);}
+  10%{opacity:1;transform:translateX(-50%) scale(1.05);}
+  20%{transform:translateX(-50%) scale(1);}
+  80%{opacity:1;}
+  100%{opacity:0;transform:translateX(-50%);}
+}
+#award-popup .award-main{font-size:20px;color:#ffdd44;font-weight:bold;}
+#award-popup .award-sub{font-size:12px;color:#aaccee;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -864,6 +887,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   </div>
   <!-- POPUP -->
   <div id="popup"></div>
+  <div id="award-popup"></div>
 </div>
 
 <script>
@@ -2279,6 +2303,21 @@ async function submitWord(){
   renderAll();
   showPopup(`+${pts}`,word.toUpperCase());
 
+  // Check respin milestone after a short delay so word popup shows first
+  setTimeout(()=>{
+    let awarded = false;
+    while(score >= respinMilestone){
+      respinCount++;
+      $('respin-count').textContent = respinCount;
+      respinMilestone += 1000;
+      awarded = true;
+    }
+    if(awarded){
+      sndLevelUp();
+      showAwardPopup('🎯 RESPIN EARNED!', `${Math.floor(score/1000)*1000} points!`);
+    }
+  }, 900);
+
   // Win condition: all grid slots are filled
   const allFilled = slotFilled.every(f => f);
   if(allFilled){
@@ -2362,13 +2401,6 @@ function setFuse(pct){
 function updateHUD(){
   $('score-val').textContent=score;
   updateHintBtn();
-  // Award a respin every 1000 points
-  while(score >= respinMilestone){
-    respinCount++;
-    $('respin-count').textContent = respinCount;
-    respinMilestone += 1000;
-    showPopup('RESPIN EARNED!', `${respinMilestone - 1000} points reached!`);
-  }
   // Letters Left = quota countdown (30), stops at 0
   // Lucky Star = no quota, hide the counter
   if(activePower === 'luckystar'){
@@ -2390,11 +2422,47 @@ function updateHUD(){
 }
 
 // -- POPUP --------------------------------------------------------
-function showPopup(main,sub){
-  const el=$('popup');
-  el.innerHTML=main+(sub?`<div style="font-size:14px;color:#aaccee;margin-top:3px">${sub}</div>`:'');
-  el.className='show';
-  el.addEventListener('animationend',()=>el.className='',{once:true});
+// ── POPUP QUEUE ──────────────────────────────────────────────
+const popupQueue = [];
+let popupBusy = false;
+
+function showPopup(main, sub){
+  popupQueue.push({main, sub, award:false});
+  drainPopupQueue();
+}
+
+function showAwardPopup(main, sub){
+  // Award popups go to the top of screen and use a separate element
+  // Queue them separately so they don't interfere with word score popups
+  popupQueue.push({main, sub, award:true});
+  drainPopupQueue();
+}
+
+function drainPopupQueue(){
+  if(popupBusy || popupQueue.length === 0) return;
+  const {main, sub, award} = popupQueue.shift();
+  popupBusy = true;
+
+  if(award){
+    const el = $('award-popup');
+    el.innerHTML = `<div class="award-main">${main}</div>` +
+                   (sub ? `<div class="award-sub">${sub}</div>` : '');
+    el.className = 'show';
+    el.addEventListener('animationend', ()=>{
+      el.className = '';
+      popupBusy = false;
+      drainPopupQueue();
+    }, {once:true});
+  } else {
+    const el = $('popup');
+    el.innerHTML = main + (sub ? `<div style="font-size:14px;color:#aaccee;margin-top:3px">${sub}</div>` : '');
+    el.className = 'show';
+    el.addEventListener('animationend', ()=>{
+      el.className = '';
+      popupBusy = false;
+      drainPopupQueue();
+    }, {once:true});
+  }
 }
 
 // -- END GAME -----------------------------------------------------
@@ -2426,7 +2494,7 @@ function endGame(won){
         if(totalWins % 8 === 0){
           hintStock++;
           updateHintBtn();
-          showPopup('HINT EARNED!', `${totalWins} wins — hint awarded!`);
+          sndLevelUp(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
         }
       } else { resetLevel(); }
       sndBoom();
@@ -2446,7 +2514,7 @@ function endGame(won){
     if(totalWins % 8 === 0){
       hintStock++;
       updateHintBtn();
-      showPopup('HINT EARNED!', `${totalWins} wins — hint awarded!`);
+      sndLevelUp(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
     }
     checkAndSaveScore();
     sndWin();
