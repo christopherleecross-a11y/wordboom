@@ -2288,6 +2288,7 @@ async function submitWord(){
   // Score
   let pts=len*multiplier;
   score+=pts;
+  saveGameState();
   if(multiplier>1 && (activePower==='double'||activePower==='triple')){
     powerUsed=true;
     $('power-hud').querySelectorAll('.phud-item').forEach(el=>el.classList.add('used'));
@@ -2326,6 +2327,7 @@ async function submitWord(){
     const timeBonus = timeLeft * 1;
     if(timeBonus > 0){
       score += timeBonus;
+      saveGameState();
       showPopup(`+${timeBonus} TIME BONUS!`, `${timeLeft} seconds left`);
     }
     setTimeout(()=>endGame(true), timeBonus > 0 ? 1200 : 700);
@@ -3479,7 +3481,8 @@ async function saveGameState(){
       version: 1
     };
     await window.storage.set(SAVE_KEY, JSON.stringify(state));
-  } catch(e){}
+    console.log('Saved:', state);
+  } catch(e){ console.error('Save failed:', e); }
 }
 
 async function loadGameState(){
@@ -3573,6 +3576,16 @@ async function checkAndSaveScore(){
   }
 }
 // -- BOOT --------------------------------------------------------
+window.addEventListener('beforeunload', ()=>{
+  // Synchronous save attempt on tab close
+  try{
+    const state = {
+      score, level, respinCount, respinMilestone, hintStock, totalWins, version:1
+    };
+    window.storage.set('wordboom-gamestate', JSON.stringify(state));
+  }catch(e){}
+});
+
 document.addEventListener('DOMContentLoaded', async function() {
   // Spark flicker animation
   let sv=true;
