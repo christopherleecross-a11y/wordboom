@@ -2471,7 +2471,6 @@ function drainPopupQueue(){
 
 // -- END GAME -----------------------------------------------------
 function endGame(won){
-  saveGameState(); // save immediately when round ends
   active=false;clearInterval(timerInt);
   clearTimeout(fuseResumeTimer);
   clearTimeout(freezeTimer);
@@ -2489,10 +2488,10 @@ function endGame(won){
 
   if(!won && currentSet){
     revealAnswers();
+    const wasLucky = activePower === 'luckystar'; // capture before activePower is cleared
     setTimeout(()=>{
       checkAndSaveScore();
-      saveGameState();
-      const isLucky = activePower === 'luckystar';
+      const isLucky = wasLucky;
       const keepScore = quotaMet || isLucky;
       if(keepScore){
         advanceLevel();
@@ -2507,7 +2506,8 @@ function endGame(won){
       $('over-title').innerHTML='BOOM!<br>💣';
       $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
       $('final-score').textContent='Score: '+score;
-      if(!keepScore){ score=0; respinMilestone=1000; saveGameState(); }
+      if(!keepScore){ score=0; respinMilestone=1000; }
+      saveGameState(); // save after score decision is made
       $('over-sub').textContent = isLucky ? 'Time ran out — score carries over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
                                   'The bomb went off! Score reset.';
@@ -3483,14 +3483,14 @@ function saveGameState(){
       version: 1
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-    console.log('Game saved:', state);
+
   } catch(e){ console.error('Save failed:', e); }
 }
 
 function loadGameState(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
-    console.log('Loading saved state:', raw);
+
     if(raw){
       const state = JSON.parse(raw);
       if(state.version === 1){
@@ -3504,10 +3504,8 @@ function loadGameState(){
         $('respin-count').textContent = respinCount;
         $('hint-count').textContent   = hintStock;
         $('score-val').textContent    = score;
-        console.log('State restored:', state);
+  
       }
-    } else {
-      console.log('No saved state found');
     }
   } catch(e){ console.error('Load failed:', e); }
 }
