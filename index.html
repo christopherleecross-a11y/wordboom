@@ -1885,6 +1885,7 @@ async function loadDictionary(){
   buildDynamicWordSets();
   setLoad(`Ready! ${DICT.size.toLocaleString()} words, ${WORD_SETS.length} puzzles`,100);
   await sleep(400);
+  loadGameState(); // restore saved state now that all DOM elements exist
   document.getElementById('load-scr').style.display='none';
   document.getElementById('start-scr').style.display='flex';
 }
@@ -3604,7 +3605,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   });
 
   loadHighScores();
-  loadGameState();
   // Auto-save every 30 seconds
   setInterval(saveGameState, 30000);
   loadDictionary();
