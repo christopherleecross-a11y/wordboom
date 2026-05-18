@@ -2716,13 +2716,17 @@ function useStoredHint(){
 // ── SHARE SCORE ──────────────────────────────────────────────
 function shareScore(){
   const won = $('over-title').innerHTML.includes('WIN');
-  const scoreVal = score;
-  const levelVal = level;
+  // Read displayed values from the screen — not the live variables which may have reset
+  const scoreText = $('final-score').textContent; // e.g. "Score: 147"
+  const scoreVal = parseInt(scoreText.replace(/[^0-9]/g,'')) || 0;
+  const levelText = $('over-level').textContent;  // e.g. "Level 4 → Level 5"
+  // Extract the left (completed) level number
+  const levelMatch = levelText.match(/(\d+)/);
+  const levelVal = levelMatch ? parseInt(levelMatch[1]) : 1;
   const stars = Math.min(10, Math.floor((levelVal-1)/5));
   const starStr = stars > 0 ? '⭐'.repeat(stars) + ' ' : '';
 
   const lines = [
-    '🎮 Word Boom',
     won ? '🏆 Board Cleared!' : '💣 Bomb went off!',
     `📊 Score: ${scoreVal}`,
     `🎯 Level: ${levelVal} ${starStr}`,
@@ -2730,14 +2734,10 @@ function shareScore(){
   ];
   const text = lines.join('\n');
 
-  // Try native share API first (mobile), fall back to clipboard
   if(navigator.share){
-    navigator.share({
-      title: 'Word Boom',
-      text: text,
-    }).catch(()=>copyToClipboard(text));
+    navigator.share({ title: '🎮 Word Boom', text }).catch(()=>copyToClipboard('🎮 Word Boom\n' + text));
   } else {
-    copyToClipboard(text);
+    copyToClipboard('🎮 Word Boom\n' + text);
   }
 }
 
