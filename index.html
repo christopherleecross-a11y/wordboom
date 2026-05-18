@@ -1951,6 +1951,7 @@ function doSpin(){
       // Land on this power — play a landing fanfare
       selectedPower = POWERS[spinIdx];
       spinning = false;
+      $('spin-icon').innerHTML = uniquifySVG(selectedPower.svg || '<svg></svg>', 'spin');
       $('spin-label').innerHTML = selectedPower.spinLabel;
       $('power-desc-icon').innerHTML = selectedPower.svg ? '<div style="width:40px;height:40px">' + uniquifySVG(selectedPower.svg,'desc') + '</div>' : '';
       $('power-desc-title').textContent = selectedPower.name;
