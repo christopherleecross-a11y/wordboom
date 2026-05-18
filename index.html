@@ -1640,7 +1640,7 @@ function endGame(won){
       $('over-title').innerHTML='BOOM!<br>💣';
       $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
       $('final-score').textContent='Score: '+score;
-      if(!keepScore){ score=0; respinMilestone=1000; }
+      if(!keepScore){ score=0; respinMilestone=1000; roundNumber=0; }
       saveGameState();
       $('over-sub').textContent = wasLucky ? 'Time ran out — Lucky Star carries you over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
@@ -2654,6 +2654,7 @@ function advanceLevel(){
 
 function resetLevel(){
   level=1;
+  roundNumber=0;
   updateLevelDisplay();
 }
 
