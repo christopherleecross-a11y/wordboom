@@ -1136,6 +1136,7 @@ let usedIdx;    // rack indices currently selected in curWord (temporary)
 let spentIdx;   // rack indices permanently used in submitted words (greyed out)
 let score=0, timeLeft, active, multiplier;
 let level=1;
+let roundNumber = 0; // increments each time a round starts
 let timerInt, flipped=false;
 
 const $=id=>document.getElementById(id);
@@ -1163,6 +1164,7 @@ function startGame(){
   shuffle(rack);
 
   // Rebuild row lengths based on whether this word set has two 7-letter words
+  roundNumber++;
   ROW_LENS = buildRowLens(currentSet);
   ALL_SLOTS = buildSlots();
   grid=Array.from({length:ROWS},(_,r)=>Array(ROW_LENS[r]).fill(null));
@@ -1840,6 +1842,52 @@ function showPowerSelector(){
   $('power-desc-icon').innerHTML='';
   $('power-desc-title').textContent='Spin to reveal your power!';
   $("power-desc-text").textContent="Tap the box above to spin and find out what power you'll play with this round.";
+
+  // Check if this round has a forced power — if so, auto-spin to it
+  const forced = getForcedPower();
+  if(forced){
+    // Short delay so the screen renders first, then auto-spin and land on forced power
+    setTimeout(()=>autoSpinTo(forced), 400);
+  }
+}
+
+function autoSpinTo(forcedPower){
+  // Animate the spin then land on the forced power
+  spinning = true;
+  $('spin-label').textContent='';
+  let ticks = 0;
+  const totalTicks = 15 + Math.floor(Math.random()*8);
+  let delay = 60;
+  function tick(){
+    spinIdx = (spinIdx+1) % POWERS.length;
+    const p = POWERS[spinIdx];
+    $('spin-icon').innerHTML = p.svg || p.id;
+    $('spin-icon').style.transform = 'scale(1.2)';
+    setTimeout(()=>$('spin-icon').style.transform='',80);
+    const freq = 300 + Math.floor((1 - delay/220)*500);
+    playTone(freq,'square',0.04,0.12);
+    ticks++;
+    if(ticks < totalTicks){
+      delay = Math.min(delay+8,220);
+      setTimeout(tick, delay);
+    } else {
+      // Land on forced power
+      selectedPower = forcedPower;
+      spinning = false;
+      $('spin-icon').innerHTML = forcedPower.svg || forcedPower.id;
+      $('spin-label').innerHTML = forcedPower.spinLabel;
+      $('power-desc-icon').innerHTML = forcedPower.svg ? '<div style="width:40px;height:40px">'+forcedPower.svg+'</div>' : '';
+      $('power-desc-title').textContent = forcedPower.name;
+      $('power-desc-text').innerHTML = forcedPower.desc;
+      $('power-start-btn').disabled = false;
+      [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.18,0.25),i*80));
+      if(forcedPower.id==='luckystar'){
+        showPopup('* LUCKY STAR!','No quota this round — score carries over!');
+      }
+    }
+  }
+  playTone(200,'sine',0.1,0.2);
+  setTimeout(tick, delay);
 }
 
 function doSpin(){
@@ -2264,20 +2312,39 @@ function moveBlockers(){
 }
 
 function dropBomb(){
-  // Pick any random slot — filled or empty
-  const idx = Math.floor(Math.random() * ALL_SLOTS.length);
-  const slot = ALL_SLOTS[idx];
+  // Separate slots into:
+  // - safe to destroy: filled slots where another empty slot of same length exists
+  // - empty slots: harmless landing
+  // Never destroy a filled slot if it's the only one of that length
+  const destroyable = ALL_SLOTS.map((_,i)=>i).filter(i=>{
+    if(!slotFilled[i]) return false;
+    const len = ALL_SLOTS[i].len;
+    const hasEmptyAlternative = ALL_SLOTS.some((s,j)=> j!==i && s.len===len && !slotFilled[j]);
+    return hasEmptyAlternative;
+  });
+  const emptySlots = ALL_SLOTS.map((_,i)=>i).filter(i=>!slotFilled[i]);
 
+  // Pick from destroyable first (50% chance if available), else empty slots
+  let idx;
+  if(destroyable.length > 0 && (emptySlots.length === 0 || Math.random() < 0.5)){
+    idx = destroyable[Math.floor(Math.random()*destroyable.length)];
+  } else if(emptySlots.length > 0){
+    idx = emptySlots[Math.floor(Math.random()*emptySlots.length)];
+  } else {
+    // Nothing safe to hit — skip
+    showPopup('💣 DUD!','No target available!');
+    return;
+  }
+
+  const slot = ALL_SLOTS[idx];
   sndBombDrop();
   animateBombFall(slot.r, ()=>{
     if(slotFilled[idx]){
-      // Destroy the word in this row
       for(let c=0;c<slot.len;c++) grid[slot.r][c]=null;
       slotFilled[idx]=false;
       renderGrid();
       showPopup('💣 BOOM!','A word was destroyed!');
     } else {
-      // Empty row — bomb lands harmlessly
       showPopup('💣 BOOM!','Lucky — nothing there!');
     }
   });
@@ -2614,6 +2681,7 @@ function saveGameState(){
     const state = {
       score,
       level,
+      roundNumber,
       respinCount,
       respinMilestone,
       hintStock,
@@ -2634,6 +2702,7 @@ function loadGameState(){
       if(state.version === 1){
         score           = state.score           || 0;
         level           = state.level           || 1;
+        roundNumber     = state.roundNumber     || 0;
         respinCount     = state.respinCount     || 0;
         respinMilestone = state.respinMilestone || 1000;
         hintStock       = state.hintStock       || 0;
@@ -2646,6 +2715,22 @@ function loadGameState(){
       }
     }
   } catch(e){ console.error('Load failed:', e); }
+}
+
+// Powers allowed in early rounds (friendly)
+const EASY_POWER_IDS = ['double','triple','luckystar','gun','hint','freeze'];
+
+function getForcedPower(){
+  if(roundNumber === 1){
+    // First round always lucky star
+    return POWERS.find(p => p.id === 'luckystar');
+  }
+  if(roundNumber >= 2 && roundNumber <= 4){
+    // Rounds 2-4: only easy/friendly powers
+    const easyPowers = POWERS.filter(p => EASY_POWER_IDS.includes(p.id));
+    return easyPowers[Math.floor(Math.random() * easyPowers.length)];
+  }
+  return null; // normal random spin
 }
 // ── HIGH SCORES ──────────────────────────────────────────────────
 const MAX_SCORES = 10;
