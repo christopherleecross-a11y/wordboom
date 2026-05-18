@@ -710,7 +710,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   pointer-events:none;display:none;
   min-width:180px;
 }
-#award-popup.show{display:block;animation:awardshow 2.5s ease-out forwards;}
+#award-popup.show{display:block;animation:awardshow 2.8s ease-out forwards;}
 @keyframes awardshow{
   0%{opacity:0;transform:translateX(-50%) scale(0.8);}
   10%{opacity:1;transform:translateX(-50%) scale(1.05);}
@@ -1592,6 +1592,7 @@ function updateHUD(){
 // ── POPUP QUEUE ──────────────────────────────────────────────
 const popupQueue = [];
 let popupBusy = false;
+let popupTimer = null;
 
 function showPopup(main, sub){
   popupQueue.push({main, sub, award:false});
@@ -1599,8 +1600,6 @@ function showPopup(main, sub){
 }
 
 function showAwardPopup(main, sub){
-  // Award popups go to the top of screen and use a separate element
-  // Queue them separately so they don't interfere with word score popups
   popupQueue.push({main, sub, award:true});
   drainPopupQueue();
 }
@@ -1610,25 +1609,29 @@ function drainPopupQueue(){
   const {main, sub, award} = popupQueue.shift();
   popupBusy = true;
 
+  const duration = award ? 2800 : 1100;
+
   if(award){
     const el = $('award-popup');
     el.innerHTML = `<div class="award-main">${main}</div>` +
                    (sub ? `<div class="award-sub">${sub}</div>` : '');
     el.className = 'show';
-    el.addEventListener('animationend', ()=>{
+    clearTimeout(popupTimer);
+    popupTimer = setTimeout(()=>{
       el.className = '';
       popupBusy = false;
       drainPopupQueue();
-    }, {once:true});
+    }, duration);
   } else {
     const el = $('popup');
     el.innerHTML = main + (sub ? `<div style="font-size:14px;color:#aaccee;margin-top:3px">${sub}</div>` : '');
     el.className = 'show';
-    el.addEventListener('animationend', ()=>{
+    clearTimeout(popupTimer);
+    popupTimer = setTimeout(()=>{
       el.className = '';
       popupBusy = false;
       drainPopupQueue();
-    }, {once:true});
+    }, duration);
   }
 }
 
