@@ -1804,6 +1804,12 @@ let totalWins = 0; // total wins across all sessions
 
 function handleSpinClick(){
   if(spinning) return;
+  const forced = getForcedPower();
+  if(forced){
+    // Early round — power is restricted, always use autoSpinTo
+    autoSpinTo(forced);
+    return;
+  }
   if(!selectedPower){
     doSpin();
   } else {
@@ -1823,7 +1829,12 @@ function useRespin(){
   }
   respinCount--;
   $('respin-count').textContent = respinCount;
-  doSpin();
+  const forced = getForcedPower();
+  if(forced){
+    autoSpinTo(forced);
+  } else {
+    doSpin();
+  }
 }
 
 function showPowerSelector(){
