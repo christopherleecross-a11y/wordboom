@@ -1613,7 +1613,8 @@ function endGame(won){
   clearInterval(jumbleInterval);
   bombTimers.forEach(t=>clearTimeout(t));bombTimers=[];
   fusePausedPct=null;
-  hintMode=false;  // hint is lost if not used this round
+  const wasLucky = activePower === 'luckystar'; // capture BEFORE activePower is cleared
+  hintMode=false;
   activePower=null;
   powerUsed=false;
   $('power-hud').innerHTML='';
@@ -1623,11 +1624,9 @@ function endGame(won){
 
   if(!won && currentSet){
     revealAnswers();
-    const wasLucky = activePower === 'luckystar'; // capture before activePower is cleared
     setTimeout(()=>{
       checkAndSaveScore();
-      const isLucky = wasLucky;
-      const keepScore = quotaMet || isLucky;
+      const keepScore = quotaMet || wasLucky;
       if(keepScore){
         advanceLevel();
         totalWins++;
@@ -1642,8 +1641,8 @@ function endGame(won){
       $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
       $('final-score').textContent='Score: '+score;
       if(!keepScore){ score=0; respinMilestone=1000; }
-      saveGameState(); // save after score decision is made
-      $('over-sub').textContent = isLucky ? 'Time ran out — score carries over!' :
+      saveGameState();
+      $('over-sub').textContent = wasLucky ? 'Time ran out — Lucky Star carries you over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
                                   'The bomb went off! Score reset.';
       $('over-scr').style.display='flex';
@@ -1875,8 +1874,7 @@ function autoSpinTo(forcedPower){
       selectedPower = forcedPower;
       spinning = false;
       $('spin-icon').innerHTML = forcedPower.svg || forcedPower.id;
-      $('spin-label').innerHTML = forcedPower.spinLabel;
-      $('power-desc-icon').innerHTML = forcedPower.svg ? '<div style="width:40px;height:40px">'+forcedPower.svg+'</div>' : '';
+      $('spin-label').innerHTML = forcedPower.spinLabel;      $('power-desc-icon').innerHTML = forcedPower.svg ? '<div style="width:40px;height:40px">'+forcedPower.svg+'</div>' : '';
       $('power-desc-title').textContent = forcedPower.name;
       $('power-desc-text').innerHTML = forcedPower.desc;
       $('power-start-btn').disabled = false;
@@ -1912,6 +1910,10 @@ function doSpin(){
       delay = Math.min(delay + 8, 220);
       setTimeout(tick, delay);
     } else {
+      // If we landed on the same power as last round, advance one more step
+      if(POWERS[spinIdx].id === lastPowerId){
+        spinIdx = (spinIdx + 1) % POWERS.length;
+      }
       // Land on this power — play a landing fanfare
       selectedPower = POWERS[spinIdx];
       spinning = false;
@@ -1920,7 +1922,6 @@ function doSpin(){
       $('power-desc-title').textContent = selectedPower.name;
       $('power-desc-text').innerHTML = selectedPower.desc;
       $('power-start-btn').disabled = false;
-      // Landing sound — ascending chime
       [523, 659, 784, 1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.18,0.25), i*80));
       if(selectedPower.id === 'luckystar'){
         showPopup('* LUCKY STAR!','No quota this round — score carries over!');
@@ -1933,6 +1934,7 @@ function doSpin(){
 }
 
 function launchGame(){
+  lastPowerId = selectedPower ? selectedPower.id : null;
   $('power-scr').style.display='none';
   startGame();
 }
@@ -2719,6 +2721,7 @@ function loadGameState(){
 
 // Powers allowed in early rounds (friendly)
 const EASY_POWER_IDS = ['double','triple','luckystar','gun','hint','freeze'];
+let lastPowerId = null; // track last round's power to avoid consecutive repeats
 
 function getForcedPower(){
   if(roundNumber === 1){
@@ -2726,11 +2729,11 @@ function getForcedPower(){
     return POWERS.find(p => p.id === 'luckystar');
   }
   if(roundNumber >= 2 && roundNumber <= 4){
-    // Rounds 2-4: only easy/friendly powers
-    const easyPowers = POWERS.filter(p => EASY_POWER_IDS.includes(p.id));
+    // Rounds 2-4: only easy/friendly powers, no repeat of last
+    const easyPowers = POWERS.filter(p => EASY_POWER_IDS.includes(p.id) && p.id !== lastPowerId);
     return easyPowers[Math.floor(Math.random() * easyPowers.length)];
   }
-  return null; // normal random spin
+  return null; // normal random spin, but no-repeat handled in doSpin
 }
 // ── HIGH SCORES ──────────────────────────────────────────────────
 const MAX_SCORES = 10;
