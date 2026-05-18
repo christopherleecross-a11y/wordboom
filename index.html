@@ -713,6 +713,25 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
 }
 #award-popup .award-main{font-size:20px;color:#ffdd44;font-weight:bold;}
 #award-popup .award-sub{font-size:12px;color:#aaccee;margin-top:2px;}
+
+/* Share button */
+#share-btn{
+  background:linear-gradient(180deg,#1da1f2,#0d8ecf);
+  border:2px solid #0a7abf;border-radius:10px;
+  color:#fff;font-family:'Fredoka One',cursive;font-size:16px;
+  padding:8px 24px;cursor:pointer;
+  box-shadow:0 4px 0 #0a5a8f;
+  display:flex;align-items:center;gap:8px;
+}
+#share-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #0a5a8f;}
+#share-toast{
+  position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.85);color:#fff;
+  font-size:13px;padding:8px 18px;border-radius:8px;
+  pointer-events:none;display:none;white-space:nowrap;
+  z-index:200;
+}
+#share-toast.show{display:block;animation:popshow 2s ease-out forwards;}
 </style>
 </head>
 <body>
@@ -747,6 +766,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
     <div id="final-score">Score: 0</div>
     <div id="over-level">Level 1</div>
     <div id="over-sub">The bomb went off!</div>
+    <button id="share-btn" onclick="shareScore()">📤 Share Score</button>
     <button class="play-btn" onclick="showPowerSelector()">PLAY AGAIN</button>
     <button class="play-btn" onclick="showHighScores()" style="font-size:18px;padding:8px 32px;background:linear-gradient(180deg,#ddaa00,#aa7700);border-color:#886600;box-shadow:0 4px 0 #664400;">🏆 HIGH SCORES</button>
   </div>
@@ -888,6 +908,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   <!-- POPUP -->
   <div id="popup"></div>
   <div id="award-popup"></div>
+  <div id="share-toast">Copied to clipboard!</div>
 </div>
 
 <script>
@@ -2688,6 +2709,58 @@ function useStoredHint(){
   showPopup('HINT!', 'Tap an empty row for a hint');
 }
 
+
+// ── SHARE SCORE ──────────────────────────────────────────────
+function shareScore(){
+  const won = $('over-title').innerHTML.includes('WIN');
+  const scoreVal = score;
+  const levelVal = level;
+  const stars = Math.min(10, Math.floor((levelVal-1)/5));
+  const starStr = stars > 0 ? '⭐'.repeat(stars) + ' ' : '';
+
+  const lines = [
+    '🎮 Word Boom',
+    won ? '🏆 Board Cleared!' : '💣 Bomb went off!',
+    `📊 Score: ${scoreVal}`,
+    `🎯 Level: ${levelVal} ${starStr}`,
+    `🔗 Play at: ${location.href}`
+  ];
+  const text = lines.join('\n');
+
+  // Try native share API first (mobile), fall back to clipboard
+  if(navigator.share){
+    navigator.share({
+      title: 'Word Boom',
+      text: text,
+    }).catch(()=>copyToClipboard(text));
+  } else {
+    copyToClipboard(text);
+  }
+}
+
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>showShareToast('Copied to clipboard! 📋'));
+  } else {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); showShareToast('Copied to clipboard! 📋'); }
+    catch(e){ showShareToast('Could not copy — try manually'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function showShareToast(msg){
+  const t = $('share-toast');
+  t.textContent = msg;
+  t.className = 'show';
+  t.addEventListener('animationend', ()=>t.className='', {once:true});
+}
 // ── GAME STATE PERSISTENCE ────────────────────────────────────
 const SAVE_KEY = 'wordboom-gamestate';
 
