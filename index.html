@@ -1640,7 +1640,7 @@ function endGame(won){
       $('over-title').innerHTML='BOOM!<br>💣';
       $('over-level').textContent = keepScore ? 'Level ' + (level-1) + ' → Level ' + level : 'Back to Level 1';
       $('final-score').textContent='Score: '+score;
-      if(!keepScore){ score=0; respinMilestone=1000; roundNumber=0; }
+      if(!keepScore){ score=0; respinMilestone=1000; roundNumber=0; lastPowerId=null; }
       saveGameState();
       $('over-sub').textContent = wasLucky ? 'Time ran out — Lucky Star carries you over!' :
                                   quotaMet ? 'Time ran out — quota met, score carries over!' :
@@ -2655,6 +2655,7 @@ function advanceLevel(){
 function resetLevel(){
   level=1;
   roundNumber=0;
+  lastPowerId=null;
   updateLevelDisplay();
 }
 
@@ -2696,6 +2697,7 @@ function saveGameState(){
       score,
       level,
       roundNumber,
+      lastPowerId,
       respinCount,
       respinMilestone,
       hintStock,
@@ -2717,6 +2719,7 @@ function loadGameState(){
         score           = state.score           || 0;
         level           = state.level           || 1;
         roundNumber     = state.roundNumber     || 0;
+        lastPowerId     = state.lastPowerId     || null;
         respinCount     = state.respinCount     || 0;
         respinMilestone = state.respinMilestone || 1000;
         hintStock       = state.hintStock       || 0;
@@ -2837,6 +2840,52 @@ document.addEventListener('DOMContentLoaded', async function() {
     if(mag>30 && Date.now()-lastShake>1000){
       lastShake=Date.now();
       scrambleRack();
+    }
+  });
+
+  // Keyboard input for laptop/desktop play
+  document.addEventListener('keydown', e=>{
+    if(!active) return;
+    const key = e.key.toLowerCase();
+
+    // Letter keys — find the first unused rack tile matching that letter
+    if(/^[a-z]$/.test(key)){
+      const n = rack.length;
+      for(let i=0; i<n; i++){
+        const rackIdx = (activePower==='flip') ? (n-1-i) : i;
+        if(rack[rackIdx].toLowerCase() === key &&
+           !usedIdx.includes(rackIdx) &&
+           !spentIdx.includes(rackIdx)){
+          pickByRackIdx(i);
+          break;
+        }
+      }
+      return;
+    }
+
+    // Backspace — remove last letter
+    if(e.key === 'Backspace'){
+      if(curWord.length > 0) removeLetter(curWord.length - 1);
+      return;
+    }
+
+    // Enter — submit word
+    if(e.key === 'Enter'){
+      if(curWord.length >= 2) submitWord();
+      return;
+    }
+
+    // Escape or Delete — clear word
+    if(e.key === 'Escape' || e.key === 'Delete'){
+      clearWord();
+      return;
+    }
+
+    // Space — shuffle rack
+    if(e.key === ' '){
+      e.preventDefault();
+      scrambleRack();
+      return;
     }
   });
 
