@@ -706,7 +706,7 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   border:3px solid #ffdd44;
   border-radius:12px;
   padding:8px 22px;
-  z-index:160;text-align:center;
+  z-index:999;text-align:center;
   pointer-events:none;display:none;
   min-width:180px;
 }
@@ -1656,7 +1656,7 @@ function endGame(won){
         if(totalWins % 2 === 0){
           hintStock++;
           updateHintBtn();
-          saveGameState(); console.log('HINT POPUP FIRING loss path, totalWins:', totalWins); showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`);
+          saveGameState(); setTimeout(()=>{ console.log('HINT POPUP FIRING loss path, totalWins:', totalWins); showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`); }, 800);
         }
       } else { resetLevel(); }
       sndBoom();
