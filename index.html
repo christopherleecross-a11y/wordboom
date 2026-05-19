@@ -1653,10 +1653,10 @@ function endGame(won){
       if(keepScore){
         advanceLevel();
         totalWins++;
-        if(totalWins % 2 === 0){
+        if(totalWins % 8 === 0){
           hintStock++;
           updateHintBtn();
-          saveGameState(); setTimeout(()=>{ console.log('HINT POPUP FIRING loss path, totalWins:', totalWins); showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`); }, 800);
+          saveGameState(); setTimeout(()=>{ showAwardPopup('💡 HINT EARNED!', 'Hint added to your collection!'); }, 800);
         }
       } else { resetLevel(); }
       sndBoom();
@@ -1674,10 +1674,10 @@ function endGame(won){
     advanceLevel();
     sndLevelUp();
     totalWins++;
-    if(totalWins % 2 === 0){
+    if(totalWins % 8 === 0){
       hintStock++;
       updateHintBtn();
-      saveGameState(); setTimeout(()=>{ console.log('HINT POPUP FIRING win path, totalWins:', totalWins); showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`); }, 800);
+      saveGameState(); setTimeout(()=>{ showAwardPopup('💡 HINT EARNED!', 'Hint added to your collection!'); }, 800);
     }
     checkAndSaveScore();
     sndWin();
