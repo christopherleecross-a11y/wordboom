@@ -1656,7 +1656,7 @@ function endGame(won){
         if(totalWins % 8 === 0){
           hintStock++;
           updateHintBtn();
-          sndLevelUp(); saveGameState(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
+          saveGameState(); showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`);
         }
       } else { resetLevel(); }
       sndBoom();
@@ -1677,7 +1677,7 @@ function endGame(won){
     if(totalWins % 8 === 0){
       hintStock++;
       updateHintBtn();
-      sndLevelUp(); saveGameState(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 900);
+      saveGameState(); setTimeout(()=>showAwardPopup('💡 HINT EARNED!', `${totalWins} wins — hint awarded!`), 800);
     }
     checkAndSaveScore();
     sndWin();
