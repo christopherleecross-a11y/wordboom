@@ -741,19 +741,49 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
 #share-toast.show{display:block;animation:popshow 2s ease-out forwards;}
 
 /* ── TV / CAST MODE (large screen) ── */
-[data-tv="1"] #app .cell { font-size: 18px !important; }
-[data-tv="1"] #app .rtile { font-size: 26px !important; width: 46px !important; height: 46px !important; border-width: 3px !important; box-shadow: 0 5px 0 #061860 !important; }
-[data-tv="1"] #app .btile { font-size: 20px !important; width: 36px !important; height: 36px !important; }
-[data-tv="1"] #app #timer-box { font-size: 34px !important; letter-spacing: 4px !important; padding: 5px 14px 5px 16px !important; }
-[data-tv="1"] #app #score-val { font-size: 30px !important; }
-[data-tv="1"] #app #ltrs-val  { font-size: 30px !important; }
-[data-tv="1"] #app .c-empty, [data-tv="1"] #app .c-empty-b, [data-tv="1"] #app .c-fill {
-  border-width: 3px !important;
+[data-tv="1"] #app {
+  display: grid !important;
+  grid-template-columns: 1fr 2fr 1fr !important;
+  grid-template-rows: auto auto auto 1fr auto auto auto !important;
+  gap: 0 !important;
 }
-[data-tv="1"] #app #level-num { font-size: 24px !important; }
-[data-tv="1"] #app #word-msg  { font-size: 13px !important; }
-[data-tv="1"] #app .logo-big  { font-size: 64px !important; }
-[data-tv="1"] #app .play-btn  { font-size: 26px !important; padding: 12px 48px !important; }
+/* Full-width spans */
+[data-tv="1"] #app #hdr          { grid-column: 1 / 4; }
+[data-tv="1"] #app #level-display{ grid-column: 1 / 4; }
+[data-tv="1"] #app #fuse-row     { grid-column: 1 / 4; }
+[data-tv="1"] #app #builder      { grid-column: 1 / 4; }
+[data-tv="1"] #app #scramble-row { grid-column: 1 / 4; }
+[data-tv="1"] #app #rack-wrap    { grid-column: 1 / 4; }
+/* Grid takes centre column, sidebar takes right column */
+[data-tv="1"] #app #grid-wrap    { grid-column: 1 / 3; grid-row: 4; display:flex; align-items:center; justify-content:center; }
+[data-tv="1"] #app #right-sidebar{ grid-column: 3; grid-row: 4; position:static !important; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px; }
+/* Bigger cells on TV */
+[data-tv="1"] #app .cell { width: 72px !important; height: 72px !important; font-size: 26px !important; border-width: 3px !important; }
+[data-tv="1"] #app .grow { gap: 4px !important; }
+[data-tv="1"] #app #grid  { gap: 4px !important; }
+[data-tv="1"] #app .rtile { font-size: 32px !important; width: 64px !important; height: 64px !important; border-width: 3px !important; }
+[data-tv="1"] #app #rack  { gap: 10px !important; }
+[data-tv="1"] #app .btile { font-size: 28px !important; width: 52px !important; height: 52px !important; }
+[data-tv="1"] #app #btiles{ gap: 8px !important; }
+[data-tv="1"] #app #timer-box { font-size: 42px !important; letter-spacing: 4px !important; padding: 8px 18px 8px 20px !important; }
+[data-tv="1"] #app #score-val { font-size: 36px !important; }
+[data-tv="1"] #app #ltrs-val  { font-size: 36px !important; }
+[data-tv="1"] #app #score-lbl, [data-tv="1"] #app #ltrs-lbl { font-size: 11px !important; }
+[data-tv="1"] #app #level-num { font-size: 28px !important; }
+[data-tv="1"] #app #level-label { font-size: 16px !important; }
+[data-tv="1"] #app #word-msg  { font-size: 16px !important; }
+[data-tv="1"] #app .logo-big  { font-size: 80px !important; }
+[data-tv="1"] #app .play-btn  { font-size: 30px !important; padding: 14px 56px !important; }
+[data-tv="1"] #app #clear-btn, [data-tv="1"] #app #submit-btn { font-size: 18px !important; padding: 8px 20px !important; }
+[data-tv="1"] #app .phud-item { width: 80px !important; height: 80px !important; }
+[data-tv="1"] #app .phud-item svg { width: 60px !important; height: 60px !important; }
+[data-tv="1"] #app #hints-btn { font-size: 30px !important; width: 80px !important; height: 68px !important; }
+[data-tv="1"] #app #score-box { padding: 2px 12px !important; }
+[data-tv="1"] #app #ltrs-box  { min-width: 90px !important; }
+[data-tv="1"] #app #menu-btn, [data-tv="1"] #app #hs-btn, [data-tv="1"] #app #sound-btn { font-size: 18px !important; padding: 0 16px !important; }
+[data-tv="1"] #app #builder { min-height: 70px !important; padding: 6px 16px !important; }
+[data-tv="1"] #app #rack-wrap { padding: 10px 16px 16px !important; }
+[data-tv="1"] #app .howto { font-size: 16px !important; max-width: 500px !important; line-height: 2 !important; }
 </style>
 </head>
 <body>
@@ -2983,20 +3013,36 @@ document.addEventListener('DOMContentLoaded', async function() {
   function scaleApp(){
     const app = $('app');
     if(!app) return;
-    const appH = 720;
-    const appW = 390;
     const winH = window.innerHeight;
     const winW = window.innerWidth;
-    const scaleH = winH / appH;
-    const scaleW = winW / appW;
-    // On large screens (TV/monitor), scale UP to fill screen
-    const scale = Math.min(scaleH, scaleW);
-    app.style.transform = scale !== 1 ? `scale(${scale.toFixed(3)})` : '';
-    app.style.transformOrigin = 'top center';
-    document.body.style.height = Math.ceil(appH * scale) + 'px';
-    // TV mode: if very large screen, increase body font for readability
-    const isTV = winW >= 1280 || winH >= 900;
-    document.body.setAttribute('data-tv', isTV ? '1' : '0');
+    const isTV = winW >= 1024;
+
+    if(isTV){
+      // TV/large screen: stretch to fill the whole screen
+      app.style.transform = '';
+      app.style.width  = winW + 'px';
+      app.style.height = winH + 'px';
+      app.style.maxWidth = '100vw';
+      app.style.borderRadius = '0';
+      app.style.border = 'none';
+      app.style.boxShadow = 'none';
+      document.body.style.height = winH + 'px';
+      document.body.setAttribute('data-tv', '1');
+    } else {
+      // Phone/tablet: original behaviour, scale down to fit
+      const appH = 720, appW = 390;
+      app.style.width  = '';
+      app.style.height = '';
+      app.style.maxWidth = '';
+      app.style.borderRadius = '';
+      app.style.border = '';
+      app.style.boxShadow = '';
+      const scale = Math.min(1, winH/appH, winW/appW);
+      app.style.transform = scale < 1 ? `scale(${scale.toFixed(3)})` : '';
+      app.style.transformOrigin = 'top center';
+      document.body.style.height = Math.ceil(appH * scale) + 'px';
+      document.body.setAttribute('data-tv', '0');
+    }
   }
   scaleApp();
   window.addEventListener('resize', scaleApp);
