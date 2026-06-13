@@ -8,8 +8,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
 html,body{height:100%;overflow:hidden;touch-action:manipulation;background:#1a3a0a;}
-body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka One',cursive;
-  background:radial-gradient(ellipse,#2a5a1a 0%,#0a1a05 100%);}
+body{display:flex;justify-content:center;align-items:flex-start;font-family:'Fredoka One',cursive;
+  background:radial-gradient(ellipse,#2a5a1a 0%,#0a1a05 100%);
+  margin:0;padding:0;}
 
 /* ── APP SHELL ── */
 #app{
@@ -746,6 +747,12 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
   grid-template-columns: 1fr 2fr 1fr !important;
   grid-template-rows: auto auto auto 1fr auto auto auto !important;
   gap: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 /* Full-width spans */
 [data-tv="1"] #app #hdr          { grid-column: 1 / 4; }
@@ -3019,15 +3026,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     const isTV = winW >= 1024;
 
     if(isTV){
-      // TV/large screen: stretch to fill the whole screen
+      // TV/large screen: let CSS handle it entirely via 100vw/100vh
       app.style.transform = '';
-      app.style.width  = winW + 'px';
-      app.style.height = winH + 'px';
-      app.style.maxWidth = '100vw';
-      app.style.borderRadius = '0';
-      app.style.border = 'none';
-      app.style.boxShadow = 'none';
-      document.body.style.height = winH + 'px';
+      app.style.width  = '';
+      app.style.height = '';
+      app.style.maxWidth = '';
+      app.style.borderRadius = '';
+      app.style.border = '';
+      app.style.boxShadow = '';
+      document.body.style.height = '100vh';
+      document.body.style.alignItems = 'flex-start';
       document.body.setAttribute('data-tv', '1');
     } else {
       // Phone/tablet: original behaviour, scale down to fit
