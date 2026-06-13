@@ -755,12 +755,13 @@ body{display:flex;justify-content:center;align-items:center;font-family:'Fredoka
 [data-tv="1"] #app #scramble-row { grid-column: 1 / 4; }
 [data-tv="1"] #app #rack-wrap    { grid-column: 1 / 4; }
 /* Grid takes centre column, sidebar takes right column */
-[data-tv="1"] #app #grid-wrap    { grid-column: 1 / 3; grid-row: 4; display:flex; align-items:center; justify-content:center; }
+[data-tv="1"] #app #grid-wrap    { grid-column: 1 / 3; grid-row: 4; display:flex; align-items:stretch; justify-content:center; padding: 0 8px; }
+[data-tv="1"] #app #grid-wrap #grid { flex: 1; justify-content: space-evenly; }
 [data-tv="1"] #app #right-sidebar{ grid-column: 3; grid-row: 4; position:static !important; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px; }
-/* Bigger cells on TV */
-[data-tv="1"] #app .cell { width: 72px !important; height: 72px !important; font-size: 26px !important; border-width: 3px !important; }
+/* Bigger cells on TV — use calc to fill available height */
+[data-tv="1"] #app .cell { width: calc((100vw * 0.6 - 80px) / 7) !important; height: calc((100vh - 280px) / 9) !important; font-size: clamp(18px, 2.5vw, 34px) !important; border-width: 3px !important; }
 [data-tv="1"] #app .grow { gap: 4px !important; }
-[data-tv="1"] #app #grid  { gap: 4px !important; }
+[data-tv="1"] #app #grid  { gap: 4px !important; height: 100%; justify-content: space-evenly !important; }
 [data-tv="1"] #app .rtile { font-size: 32px !important; width: 64px !important; height: 64px !important; border-width: 3px !important; }
 [data-tv="1"] #app #rack  { gap: 10px !important; }
 [data-tv="1"] #app .btile { font-size: 28px !important; width: 52px !important; height: 52px !important; }
